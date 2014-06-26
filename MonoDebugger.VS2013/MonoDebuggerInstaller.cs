@@ -1,0 +1,56 @@
+﻿using Microsoft.Win32;
+using MonoDebugger.VS2013.Debugger;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MonoDebugger.VS2013
+{
+    public static class MonoDebuggerInstaller
+    {
+        private const string ENGINE_PATH = @"AD7Metrics\Engine\";
+        private const string CLSID_PATH = @"CLSID\";
+
+        public static void RegisterDebugEngine(string dllPath, RegistryKey rootKey)
+        {
+            using (var engine = rootKey.OpenSubKey(@"AD7Metrics\Engine\", true))
+            {
+                var engineGuid = MonoGuids.EngineGuid.ToString("B").ToUpper();
+                using (RegistryKey engineKey = engine.CreateSubKey(engineGuid))
+                {
+                    engineKey.SetValue("CLSID", MonoGuids.EngineGuid.ToString("B").ToUpper());
+                    engineKey.SetValue("ProgramProvider", MonoGuids.ProgramProviderGuid.ToString("B").ToUpper());
+                    engineKey.SetValue("Attach", 1, RegistryValueKind.DWord);
+                    engineKey.SetValue("AddressBP", 0, RegistryValueKind.DWord);
+                    engineKey.SetValue("AutoSelectPriority", 4, RegistryValueKind.DWord);
+                    engineKey.SetValue("CallstackBP", 1, RegistryValueKind.DWord);
+                    engineKey.SetValue("Name", MonoGuids.EngineName);
+                    engineKey.SetValue("PortSupplier", MonoGuids.ProgramProviderGuid.ToString("B").ToUpper());
+                    engineKey.SetValue("AlwaysLoadLocal", 1, RegistryValueKind.DWord);
+                }
+            }
+
+            using (var clsid = rootKey.OpenSubKey(CLSID_PATH, true))
+            {
+                using (var clsidKey = clsid.CreateSubKey(MonoGuids.EngineGuid.ToString("B").ToUpper()))
+                {
+                    clsidKey.SetValue("Assembly", Assembly.GetExecutingAssembly().GetName().Name);
+                    clsidKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.MonoEngine");
+                    clsidKey.SetValue("InprocServer32", @"c:\windows\system32\mscoree.dll");
+                    clsidKey.SetValue("CodeBase", dllPath);
+                }
+
+                using (var programProviderKey = clsid.CreateSubKey(MonoGuids.ProgramProviderGuid.ToString("B").ToUpper()))
+                {
+                    programProviderKey.SetValue("Assembly", Assembly.GetExecutingAssembly().GetName().Name);
+                    programProviderKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.MonoProgramProvider");
+                    programProviderKey.SetValue("InprocServer32", @"c:\windows\system32\mscoree.dll");
+                    programProviderKey.SetValue("CodeBase", dllPath);
+                }
+            }
+        }
+    }
+}
