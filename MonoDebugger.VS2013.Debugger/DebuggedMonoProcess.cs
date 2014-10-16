@@ -31,6 +31,7 @@ namespace MonoDebugger.VS2013.Debugger
 
         public event EventHandler ApplicationClosed;
         private StepEventRequest currentStepRequest;
+        private bool isStepping;
 
         internal void StartDebugging()
         {
@@ -98,7 +99,7 @@ namespace MonoDebugger.VS2013.Debugger
             if (ev.EventType == EventType.Breakpoint)
             {
                 HandleBreakPoint((BreakpointEvent) ev);
-                return false;
+                return currentStepRequest.Enabled;
             }
             if (ev.EventType == EventType.Step)
             {
@@ -128,9 +129,10 @@ namespace MonoDebugger.VS2013.Debugger
 
         private void HandleStep(StepEvent stepEvent)
         {
-            stepEvent.Request.Disable();
             _engine.Events.StepCompleted(_mainThread);
             logger.Trace("Stepping: {0}:{1}", stepEvent.Method.Name, stepEvent.Location);
+
+            isStepping = false;
         }
 
         private void HandleBreakPoint(BreakpointEvent bpEvent)
@@ -154,7 +156,7 @@ namespace MonoDebugger.VS2013.Debugger
                         try
                         {
                             int ilOffset;
-                            StatementRange position = RoslynHelper.GetILOffset(bp, location.Method, out ilOffset);
+                            RoslynHelper.GetILOffset(bp, location.Method, out ilOffset);
 
                             BreakpointEventRequest request = _vm.SetBreakpoint(location.Method, ilOffset);
                             request.Enable();
@@ -252,12 +254,17 @@ namespace MonoDebugger.VS2013.Debugger
 
         internal void Step(MonoThread thread, enum_STEPKIND sk)
         {
-            if (currentStepRequest != null)
+            if (isStepping)
+                return;
+            
+            if (currentStepRequest == null)
+                currentStepRequest = _vm.CreateStepRequest(thread.ThreadMirror);
+            else
             {
                 currentStepRequest.Disable();
             }
 
-            currentStepRequest = _vm.CreateStepRequest(thread.ThreadMirror);
+            isStepping = true;
             switch (sk)
             {
                 case enum_STEPKIND.STEP_INTO:
