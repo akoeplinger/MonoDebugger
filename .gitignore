@@ -5,3 +5,9 @@
 /packages
 /MonoDebugger.sln.ide
 *.suo
+/Output/Debug
+/UpgradeLog.htm
+/MonoDebugger.SharedLib/obj/Debug
+/MonoDebugger.MonoServer/obj/Debug
+/MonoDebugger.VS2013.Debugger/obj/Debug
+/MonoDebugger.VS2013/obj/Debug
