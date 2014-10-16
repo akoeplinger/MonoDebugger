@@ -55,8 +55,16 @@ namespace MonoDebugger.SharedLib.Server
 
         public void Stop()
         {
-            _isRunning = false;
-            Task.WaitAll(_listeningTask);
+            try
+            {
+                _tcp.Server.Close(0);
+                _isRunning = false;
+                Task.WaitAll(_listeningTask);
+            }
+            catch
+            {
+                
+            }
         }
 
         public void StartAnnouncing()

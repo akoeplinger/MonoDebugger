@@ -71,16 +71,25 @@ namespace MonoDebugger.VS2013.Debugger
 
             while (_isRunning)
             {
-                EventSet set = _vm.GetNextEventSet();
-
-                bool resume = false;
-                foreach (Event ev in set.Events)
+                try
                 {
-                    resume = resume || HandleEventSet(ev);
-                }
+                    EventSet set = _vm.GetNextEventSet();
 
-                if (resume && _vm != null)
-                    _vm.Resume();
+                    bool resume = false;
+                    foreach (Event ev in set.Events)
+                    {
+                        logger.Trace(ev);
+                        resume = resume || HandleEventSet(ev);
+                    }
+
+                    if (resume && _vm != null)
+                        _vm.Resume();
+
+                    
+                }
+                catch (VMNotSuspendedException)
+                {
+                }
             }
         }
 
