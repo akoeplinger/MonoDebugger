@@ -5,16 +5,18 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NLog;
 
 namespace MonoDebugger.SharedLib.Server
 {
     class Pdb2MdbGenerator
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         internal void GeneratePdb2Mdb(string directoryName)
         {
-            Trace.WriteLine(directoryName);
+            logger.Trace(directoryName);
             var files = Directory.GetFiles(directoryName, "*.dll").Concat(Directory.GetFiles(directoryName, "*.exe")).Where(x => !x.Contains("vshost"));
-            Trace.WriteLine(files.Count());
+            logger.Trace(files.Count());
 
             DirectoryInfo dirInfo = new DirectoryInfo(directoryName);
 
@@ -26,7 +28,7 @@ namespace MonoDebugger.SharedLib.Server
                     var pdbFile = Path.Combine(Path.GetDirectoryName(file), fileNameWithoutExt + ".pdb");
                     if (File.Exists(pdbFile))
                     {
-                        Trace.WriteLine("Generate mdp for: " + file);
+                        logger.Trace("Generate mdp for: " + file);
                         ProcessStartInfo procInfo = new ProcessStartInfo(MonoUtils.GetPdb2MdbPath(), Path.GetFileName(file));
                         procInfo.WorkingDirectory = dirInfo.FullName;
                         procInfo.UseShellExecute = false;
@@ -37,11 +39,11 @@ namespace MonoDebugger.SharedLib.Server
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine(ex);
+                    logger.Trace(ex);
                 }
             });
 
-            Trace.WriteLine("Transformed Debuginformation pdb2mdb");
+            logger.Trace("Transformed Debuginformation pdb2mdb");
         }
     }
 }

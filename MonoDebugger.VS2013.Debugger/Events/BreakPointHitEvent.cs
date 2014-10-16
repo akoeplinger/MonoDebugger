@@ -1,12 +1,7 @@
-﻿using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Debugger.Interop;
-using MonoDebugger.VS2013.Debugger.Events;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Microsoft.VisualStudio.Debugger.Interop;
+using MonoDebugger.VS2013.Debugger.VisualStudio;
 
-namespace MonoDebugger.VS2013.Debugger
+namespace MonoDebugger.VS2013.Debugger.Events
 {
     class BreakPointHitEvent : StoppingEvent, IDebugBreakpointEvent2
     {

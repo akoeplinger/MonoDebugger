@@ -1,13 +1,8 @@
-﻿using Microsoft.VisualStudio;
+﻿using System;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Debugger.Interop;
-using Mono.Debugger.Soft;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
 
-namespace MonoDebugger.VS2013.Debugger
+namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     public class MonoProcess : IDebugProcess3
     {

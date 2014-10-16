@@ -11,6 +11,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
 
 namespace MonoDebugger.VS2013.Debugger
 {
@@ -25,6 +26,7 @@ namespace MonoDebugger.VS2013.Debugger
         private VirtualMachine _vm;
         private MonoEngine _engine;
         private MonoThread _mainThread;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
 
         public DebuggedMonoProcess(MonoEngine engine, IPAddress ipAddress)
@@ -113,7 +115,7 @@ namespace MonoDebugger.VS2013.Debugger
                         Disconnect();
                         return false;
                     default:
-                        Trace.WriteLine(ev);
+                        logger.Trace(ev);
                         break;
                 }
 
@@ -125,7 +127,7 @@ namespace MonoDebugger.VS2013.Debugger
         {
             stepEvent.Request.Disable();
             _engine.Events.StepCompleted(_mainThread);
-            Trace.WriteLine(string.Format("Stepping: {0}:{1}", stepEvent.Method.Name, stepEvent.Location));
+            logger.Trace(string.Format("Stepping: {0}:{1}", stepEvent.Method.Name, stepEvent.Location));
         }
 
         private void HandleBreakPoint(BreakpointEvent bpEvent)
@@ -162,7 +164,7 @@ namespace MonoDebugger.VS2013.Debugger
                         }
                         catch (Exception ex)
                         {
-                            Trace.WriteLine("Cant bind breakpoint: " + ex);
+                            logger.Trace("Cant bind breakpoint: " + ex);
                         }
                     }
                 }
@@ -195,7 +197,7 @@ namespace MonoDebugger.VS2013.Debugger
                 string typeName = typeMirror.Name;
                 if (!string.IsNullOrEmpty(typeMirror.Namespace))
                     typeName = typeMirror.Namespace + "." + typeMirror.Name;
-                Trace.WriteLine("Loaded and registered Type: " + typeName);
+                logger.Trace("Loaded and registered Type: " + typeName);
             }
         }
 

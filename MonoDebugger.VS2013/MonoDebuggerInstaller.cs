@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using MonoDebugger.VS2013.Debugger.VisualStudio;
 
 namespace MonoDebugger.VS2013
 {
@@ -38,7 +39,7 @@ namespace MonoDebugger.VS2013
                 using (var clsidKey = clsid.CreateSubKey(MonoGuids.EngineGuid.ToString("B").ToUpper()))
                 {
                     clsidKey.SetValue("Assembly", Assembly.GetExecutingAssembly().GetName().Name);
-                    clsidKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.MonoEngine");
+                    clsidKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.VisualStudio.MonoEngine");
                     clsidKey.SetValue("InprocServer32", @"c:\windows\system32\mscoree.dll");
                     clsidKey.SetValue("CodeBase", dllPath);
                 }
@@ -46,7 +47,7 @@ namespace MonoDebugger.VS2013
                 using (var programProviderKey = clsid.CreateSubKey(MonoGuids.ProgramProviderGuid.ToString("B").ToUpper()))
                 {
                     programProviderKey.SetValue("Assembly", Assembly.GetExecutingAssembly().GetName().Name);
-                    programProviderKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.MonoProgramProvider");
+                    programProviderKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.VisualStudio.MonoProgramProvider");
                     programProviderKey.SetValue("InprocServer32", @"c:\windows\system32\mscoree.dll");
                     programProviderKey.SetValue("CodeBase", dllPath);
                 }

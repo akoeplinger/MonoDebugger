@@ -162,33 +162,34 @@
     <Compile Include="..\AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="Guids.cs" />
+    <Compile Include="VisualStudio\Guids.cs" />
     <Compile Include="MonoClient\DebugClient.cs" />
     <Compile Include="MonoClient\DebugSession.cs" />
     <Compile Include="MonoClient\MonoServerDiscovery.cs" />
     <Compile Include="MonoClient\MonoServerInformation.cs" />
-    <Compile Include="MonoDebugger.VS2013Package.cs" />
+    <Compile Include="MonoDebuggerPackage.VS2013Package.cs" />
     <Compile Include="MonoDebuggerInstaller.cs" />
     <Compile Include="MonoVisualStudioExtension.cs" />
-    <Compile Include="PkgCmdID.cs" />
+    <Compile Include="VisualStudio\PkgCmdID.cs" />
     <Compile Include="ServersFound.xaml.cs">
       <DependentUpon>ServersFound.xaml</DependentUpon>
     </Compile>
     <Compile Include="ServersFoundViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="VSPackage.resx">
+    <EmbeddedResource Include="VisualStudio\VSPackage.resx">
       <MergeWithCTO>true</MergeWithCTO>
       <ManifestResourceName>VSPackage</ManifestResourceName>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="source.extension.vsixmanifest">
+    <None Include="VisualStudio\source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <VSCTCompile Include="MonoDebugger.VS2013.vsct">
+    <VSCTCompile Include="VisualStudio\MonoDebugger.VS2013.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
       <SubType>Designer</SubType>
     </VSCTCompile>
@@ -199,7 +200,7 @@
   <ItemGroup>
     <Resource Include="Resources\ArrowDown.png" />
     <Resource Include="Resources\MonoLogo.png" />
-    <Content Include="License.txt">
+    <Content Include="VisualStudio\License.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>

@@ -4,11 +4,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NLog;
 
 namespace MonoDebugger.SharedLib.Server
 {
     class MonoWebProcess : MonoProcess
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         public string Url { get; private set; }
 
         internal override Process Start(string workingDirectory)
@@ -52,7 +54,7 @@ namespace MonoDebugger.SharedLib.Server
                     }
 
 
-                    Trace.WriteLine(line);
+                    logger.Trace(line);
                 }
             });
 

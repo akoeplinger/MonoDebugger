@@ -65,6 +65,9 @@
     <Reference Include="Ionic.Zip">
       <HintPath>..\packages\DotNetZip.1.9.2\lib\net20\Ionic.Zip.dll</HintPath>
     </Reference>
+    <Reference Include="NLog">
+      <HintPath>..\packages\NLog.3.1.0.0\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -81,6 +84,7 @@
     <Compile Include="ApplicationType.cs" />
     <Compile Include="Command.cs" />
     <Compile Include="ExtensionMethods.cs" />
+    <Compile Include="MonoLogger.cs" />
     <Compile Include="MessageBase.cs" />
     <Compile Include="Server\ClientSession.cs" />
     <Compile Include="Server\MonoDesktopProcess.cs" />

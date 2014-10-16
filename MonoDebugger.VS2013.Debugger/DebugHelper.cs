@@ -1,20 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using NLog;
 
 namespace MonoDebugger.VS2013.Debugger
 {
     public static class DebugHelper
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         internal static void TraceEnteringMethod([CallerMemberName] string callerMember = "")
         {
-            var mth = new StackTrace().GetFrame(1).GetMethod();
-            var className = mth.ReflectedType.Name;
-            Trace.WriteLine(className + " (entering) :  " + callerMember);
+            MethodBase mth = new StackTrace().GetFrame(1).GetMethod();
+            if (mth.ReflectedType != null)
+            {
+                string className = mth.ReflectedType.Name;
+                logger.Trace(className + " (entering) :  " + callerMember);
+            }
         }
     }
 }

@@ -1,12 +1,8 @@
-﻿using Microsoft.VisualStudio;
+﻿using System;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Debugger.Interop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 
-namespace MonoDebugger.VS2013.Debugger
+namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     class MonoBoundBreakpoint : IDebugBoundBreakpoint2, IDebugBreakpointResolution2
     {

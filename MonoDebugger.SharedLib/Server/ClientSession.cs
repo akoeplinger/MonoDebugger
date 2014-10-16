@@ -11,6 +11,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
 
 namespace MonoDebugger.SharedLib.Server
 {
@@ -24,6 +25,7 @@ namespace MonoDebugger.SharedLib.Server
         private Process _proc;
         private TcpCommunication _communication;
         private IPAddress _remoteEndpoint;
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public ClientSession(Socket socket)
         {
@@ -39,7 +41,7 @@ namespace MonoDebugger.SharedLib.Server
         {
             try
             {
-                Trace.WriteLine(string.Format("New Session from {0}", _remoteEndpoint));
+                logger.Trace(string.Format("New Session from {0}", _remoteEndpoint));
 
                 while (_communication.IsConnected)
                 {
@@ -57,14 +59,14 @@ namespace MonoDebugger.SharedLib.Server
                     }
                 }
             }
-            catch (SocketException socketEx)
+            catch (SocketException)
             {
                 if (_proc != null && !_proc.HasExited)
                     _proc.Kill();
             }
             catch (Exception ex)
             {
-                Trace.WriteLine(ex);
+                logger.Trace(ex);
             }
         }
 
@@ -75,7 +77,7 @@ namespace MonoDebugger.SharedLib.Server
 
             _targetExe = msg.FileName;
 
-            Trace.WriteLine(string.Format("Receiving content from {0}", _remoteEndpoint));
+            logger.Trace(string.Format("Receiving content from {0}", _remoteEndpoint));
             File.WriteAllBytes(ZipFileName, msg.DebugContent);
             ZipFile.ExtractToDirectory(ZipFileName, _directoryName);
 
@@ -83,7 +85,7 @@ namespace MonoDebugger.SharedLib.Server
                 File.Delete(file);
 
             File.Delete(ZipFileName);
-            Trace.WriteLine(string.Format("Extracted content from {0} to {1}", _remoteEndpoint, _directoryName));
+            logger.Trace(string.Format("Extracted content from {0} to {1}", _remoteEndpoint, _directoryName));
 
             var generator = new Pdb2MdbGenerator();
             var binaryDirectory = msg.AppType == ApplicationType.Desktopapplication ? _directoryName : Path.Combine(_directoryName, "bin");
@@ -119,7 +121,7 @@ namespace MonoDebugger.SharedLib.Server
             }
             catch(Exception ex)
             {
-                Trace.WriteLine(string.Format("Cant delete {0} - {1}", _directoryName, ex.Message));
+                logger.Trace(string.Format("Cant delete {0} - {1}", _directoryName, ex.Message));
             }
         }
     }

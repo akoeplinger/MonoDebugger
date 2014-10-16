@@ -5,36 +5,47 @@
   <Extern href="vsshlids.h"/>
 
   <Commands package="guidMonoDebugger_VS2013Pkg">
+    <Menus>
+      <Menu guid="guidMonoDebugger_VS2013CmdSet" id="menuIDMainMenu" priority="0x100"
+        type="Menu">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_MM_BUILDDEBUGRUN" />
+        <Strings>
+          <ButtonText>MonoDebugger</ButtonText>
+          <CommandName>MonoDebugger</CommandName>
+        </Strings>
+      </Menu>
+    </Menus>
+    
     <Groups>
-      <Group guid="guidMonoDebugger_VS2013CmdSet" id="MyMenuGroup" priority="0x0600">
-        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_BUILD"/>
+      <Group guid="guidMonoDebugger_VS2013CmdSet" id="TopLevelMenuGroup" priority="0x0600">
+        <Parent guid="guidMonoDebugger_VS2013CmdSet" id="menuIDMainMenu"/>
       </Group>
     </Groups>
     
     <Buttons>
       <Button guid="guidMonoDebugger_VS2013CmdSet" id="cmdLocalDebugCode" priority="0x0101" type="Button">
-        <Parent guid="guidMonoDebugger_VS2013CmdSet" id="MyMenuGroup" />
+        <Parent guid="guidMonoDebugger_VS2013CmdSet" id="TopLevelMenuGroup" />
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>DefaultInvisible</CommandFlag>
         <Icon guid="guidImages" id="publish" />
         <Strings>
-          <ButtonText>Start Mono-Debugging (local)</ButtonText>
+          <ButtonText>Debug with Mono (local)</ButtonText>
         </Strings>
       </Button>
       
       <Button guid="guidMonoDebugger_VS2013CmdSet" id="cmdRemodeDebugCode" priority="0x0100" type="Button">
-        <Parent guid="guidMonoDebugger_VS2013CmdSet" id="MyMenuGroup" />
+        <Parent guid="guidMonoDebugger_VS2013CmdSet" id="TopLevelMenuGroup" />
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>DefaultInvisible</CommandFlag>
         <Icon guid="guidImages" id="publish" />
         <Strings>
-          <ButtonText>Start Mono-Debugging (remote)</ButtonText>
+          <ButtonText>Debug with Mono (remote)</ButtonText>
         </Strings>
       </Button>
     </Buttons>
     
     <Bitmaps>
-      <Bitmap guid="guidImages" href="Resources\Images.png" usedList="publish"/>      
+      <Bitmap guid="guidImages" href="..\Resources\Images.png" usedList="publish"/>      
     </Bitmaps> 
   </Commands>
   
@@ -42,9 +53,11 @@
     <GuidSymbol name="guidMonoDebugger_VS2013Pkg" value="{15538f63-0557-4a8c-8ed4-a842d6f6f4db}" />
     
     <GuidSymbol name="guidMonoDebugger_VS2013CmdSet" value="{7951fdf3-b04d-41d6-9917-3fa9d554cdcd}">
-      <IDSymbol name="MyMenuGroup" value="0x1020" />
+      <IDSymbol name="TopLevelMenuGroup" value="0x1020" />
       <IDSymbol name="cmdRemodeDebugCode" value="0x0100" />
       <IDSymbol name="cmdLocalDebugCode" value="0x0101" />
+      <IDSymbol name="menuIDMainMenu" value="0x0102" />
+      <IDSymbol name="TopLevelMenuGroup" value="0x0103" />
     </GuidSymbol>
     
     <GuidSymbol name="guidImages" value="{5f91711c-12a6-4a4e-875a-352c3cf839c8}" >

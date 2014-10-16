@@ -1,13 +1,8 @@
-﻿using Microsoft.VisualStudio.Debugger.Interop;
+﻿using System;
+using Microsoft.VisualStudio.Debugger.Interop;
 using MonoDebugger.VS2013.Debugger.Events;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using MonoDebugger.VS2013.Debugger.VisualStudio;
 
-namespace MonoDebugger.VS2013.Debugger
+namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     public class MonoDebuggerEvents
     {

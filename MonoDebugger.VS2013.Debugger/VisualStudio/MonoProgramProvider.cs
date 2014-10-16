@@ -1,13 +1,9 @@
-﻿using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Debugger.Interop; 
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Debugger.Interop;
 
-namespace MonoDebugger.VS2013.Debugger
+namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     [ComVisible(true)]
     [Guid(MonoGuids.ProgramProviderString)]

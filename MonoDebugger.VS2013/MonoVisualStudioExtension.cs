@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using MonoDebugger.SharedLib;
 using MonoDebugger.VS2013.Debugger;
+using MonoDebugger.VS2013.Debugger.VisualStudio;
 using MonoDebugger.VS2013.MonoClient;
 using System;
 using System.Collections.Generic;

@@ -10,16 +10,19 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MonoDebugger.VS2013.Debugger.VisualStudio;
+using NLog;
 
 namespace MonoDebugger.VS2013.Debugger
 {
     class RoslynHelper
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         internal static StatementRange GetStatementRange(string fileName, int startLine, int startColumn)
         {
             try
             {
-                Trace.WriteLine(string.Format("Line: {0} Column: {1} Source: {2}", startLine, startColumn, fileName));
+                logger.Trace(string.Format("Line: {0} Column: {1} Source: {2}", startLine, startColumn, fileName));
 
 
                 var syntaxTree = CSharpSyntaxTree.ParseFile(fileName);

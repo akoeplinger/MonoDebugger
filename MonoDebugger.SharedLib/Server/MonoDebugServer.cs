@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
 
 namespace MonoDebugger.SharedLib.Server
 {
@@ -21,6 +22,7 @@ namespace MonoDebugger.SharedLib.Server
         private Task _announceTask;
         private TcpListener _tcp;
         private Task _listeningTask;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public void Start()
         {
@@ -64,7 +66,7 @@ namespace MonoDebugger.SharedLib.Server
             {
                 try
                 {
-                    Trace.WriteLine("Start announcing");
+                    logger.Trace("Start announcing");
                     UdpClient client = new UdpClient();
                     IPEndPoint ip = new IPEndPoint(IPAddress.Broadcast, 15000);
                     client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
@@ -76,12 +78,12 @@ namespace MonoDebugger.SharedLib.Server
                         Thread.Sleep(100);
                     }
 
-                    Trace.WriteLine("Stopping announcing");
+                    logger.Trace("Stopping announcing");
                     client.Close();
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine(ex);
+                    logger.Trace(ex);
                 }
             });
         }

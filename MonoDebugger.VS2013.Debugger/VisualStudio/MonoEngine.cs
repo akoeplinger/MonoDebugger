@@ -1,18 +1,10 @@
-﻿using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Debugger.Interop;
-using Mono.Debugger.Soft;
-using MonoDebugger.VS2013.Debugger.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Net;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using MonoDebugger.VS2013.Debugger.VisualStudio;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Debugger.Interop;
 
-namespace MonoDebugger.VS2013.Debugger
+namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     [ComVisible(true)]
     [Guid(MonoGuids.EngineString)]
