@@ -1,21 +1,18 @@
-﻿using MonoDebugger.VS2013.MonoClient;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+using MonoDebugger.VS2013.MonoClient;
 
-namespace MonoDebugger.VS2013
+namespace MonoDebugger.VS2013.Views
 {
-    public class ServersFoundViewModel 
+    public class ServersFoundViewModel
     {
         public ObservableCollection<MonoServerInformation> Servers { get; set; }
         public MonoServerInformation SelectedServer { get; set; }
-      
+        public string ManualIp { get; set; }
         private volatile bool _lookupServers;
-        
+
         public ServersFoundViewModel()
         {
             Servers = new ObservableCollection<MonoServerInformation>();

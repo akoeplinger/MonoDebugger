@@ -90,6 +90,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Mono-3.2.3\lib\mono\2.0\Mono.Debugger.Soft.dll</HintPath>
     </Reference>
+    <Reference Include="NLog, Version=3.1.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\NLog.3.1.0.0\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
@@ -167,14 +171,14 @@
     <Compile Include="MonoClient\DebugSession.cs" />
     <Compile Include="MonoClient\MonoServerDiscovery.cs" />
     <Compile Include="MonoClient\MonoServerInformation.cs" />
-    <Compile Include="MonoDebuggerPackage.VS2013Package.cs" />
+    <Compile Include="MonoDebuggerPackage.cs" />
     <Compile Include="MonoDebuggerInstaller.cs" />
     <Compile Include="MonoVisualStudioExtension.cs" />
     <Compile Include="VisualStudio\PkgCmdID.cs" />
-    <Compile Include="ServersFound.xaml.cs">
+    <Compile Include="Views\ServersFound.xaml.cs">
       <DependentUpon>ServersFound.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ServersFoundViewModel.cs" />
+    <Compile Include="Views\ServersFoundViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="VisualStudio\VSPackage.resx">
@@ -221,7 +225,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="ServersFound.xaml">
+    <Page Include="Views\ServersFound.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

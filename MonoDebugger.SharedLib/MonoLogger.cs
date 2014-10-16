@@ -11,12 +11,13 @@ namespace MonoDebugger.SharedLib
 
         public static void Setup()
         {
-            LoggerPath = Directory.GetCurrentDirectory();
+            LoggerPath = Path.Combine(Directory.GetCurrentDirectory(), "MonoDebugger.log");
 
             var config = new LoggingConfiguration();
             var fileTarget = new FileTarget { FileName = "MonoDebugger.log" };
             config.AddTarget("file", fileTarget);
             config.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, fileTarget));
+
             LogManager.Configuration = config;
         }
     }

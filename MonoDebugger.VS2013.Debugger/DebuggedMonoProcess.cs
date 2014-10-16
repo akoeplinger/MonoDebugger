@@ -1,32 +1,26 @@
-﻿using Microsoft.VisualStudio.Debugger.Interop;
-using Mono.Debugger.Soft;
-using MonoDebugger.VS2013.Debugger.VisualStudio;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Security;
-using System.Security.Principal;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Debugger.Interop;
+using Mono.Debugger.Soft;
+using MonoDebugger.VS2013.Debugger.VisualStudio;
 using NLog;
 
 namespace MonoDebugger.VS2013.Debugger
 {
     public class DebuggedMonoProcess
     {
-        public event EventHandler ApplicationClosed;
-
-        private readonly Dictionary<string, TypeSummary> _types = new Dictionary<string, TypeSummary>();
-        private readonly IPAddress _ipAddress;
-        private List<MonoPendingBreakpoint> _pendingBreakpoints = new List<MonoPendingBreakpoint>();
-        private volatile bool _isRunning = true;
-        private VirtualMachine _vm;
-        private MonoEngine _engine;
-        private MonoThread _mainThread;
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly MonoEngine _engine;
+        private readonly IPAddress _ipAddress;
+        private readonly List<MonoPendingBreakpoint> _pendingBreakpoints = new List<MonoPendingBreakpoint>();
+        private readonly Dictionary<string, TypeSummary> _types = new Dictionary<string, TypeSummary>();
+        private volatile bool _isRunning = true;
+        private MonoThread _mainThread;
+        private VirtualMachine _vm;
 
 
         public DebuggedMonoProcess(MonoEngine engine, IPAddress ipAddress)
@@ -35,6 +29,9 @@ namespace MonoDebugger.VS2013.Debugger
             _ipAddress = ipAddress;
         }
 
+        public event EventHandler ApplicationClosed;
+        private StepEventRequest currentStepRequest;
+
         internal void StartDebugging()
         {
             if (_vm != null)
@@ -42,21 +39,21 @@ namespace MonoDebugger.VS2013.Debugger
 
             _vm = VirtualMachineManager.Connect(new IPEndPoint(_ipAddress, 11000));
             _vm.EnableEvents(EventType.AssemblyLoad,
-                             EventType.ThreadStart,
-                             EventType.ThreadDeath,
-                             EventType.AssemblyUnload,
-                             EventType.UserBreak,
-                             EventType.Exception,
-                             EventType.UserLog,
-                             EventType.KeepAlive,
-                             EventType.TypeLoad);
+                EventType.ThreadStart,
+                EventType.ThreadDeath,
+                EventType.AssemblyUnload,
+                EventType.UserBreak,
+                EventType.Exception,
+                EventType.UserLog,
+                EventType.KeepAlive,
+                EventType.TypeLoad);
 
-            var set = _vm.GetNextEventSet();
+            EventSet set = _vm.GetNextEventSet();
             if (set.Events.OfType<VMStartEvent>().Any())
             {
-                _mainThread = new MonoThread(_engine, ((VMStartEvent)set.Events[0]).Thread);
+                _mainThread = new MonoThread(_engine, set.Events[0].Thread);
                 _engine.Events.ThreadStarted(_mainThread);
-                
+
                 Task.Factory.StartNew(ReceiveThread, TaskCreationOptions.LongRunning);
             }
             else
@@ -74,10 +71,10 @@ namespace MonoDebugger.VS2013.Debugger
 
             while (_isRunning)
             {
-                var set = _vm.GetNextEventSet();
+                EventSet set = _vm.GetNextEventSet();
 
                 bool resume = false;
-                foreach (var ev in set.Events)
+                foreach (Event ev in set.Events)
                 {
                     resume = resume || HandleEventSet(ev);
                 }
@@ -91,49 +88,46 @@ namespace MonoDebugger.VS2013.Debugger
         {
             if (ev.EventType == EventType.Breakpoint)
             {
-                HandleBreakPoint((BreakpointEvent)ev);
+                HandleBreakPoint((BreakpointEvent) ev);
                 return false;
             }
-            else if (ev.EventType == EventType.Step)
+            if (ev.EventType == EventType.Step)
             {
-                HandleStep((StepEvent)ev);
+                HandleStep((StepEvent) ev);
                 return false;
             }
-            else
+            switch (ev.EventType)
             {
-                switch (ev.EventType)
-                {
-                    case EventType.TypeLoad:
-                        var typeEvent = (TypeLoadEvent)ev;
-                        RegisterType(typeEvent.Type);
-                        if (TryBindBreakpoints() != 0)
-                            return false;
-
-                        break;
-                    case EventType.VMDeath:
-                    case EventType.VMDisconnect:
-                        Disconnect();
+                case EventType.TypeLoad:
+                    var typeEvent = (TypeLoadEvent) ev;
+                    RegisterType(typeEvent.Type);
+                    if (TryBindBreakpoints() != 0)
                         return false;
-                    default:
-                        logger.Trace(ev);
-                        break;
-                }
 
-                return true;
+                    break;
+                case EventType.VMDeath:
+                case EventType.VMDisconnect:
+                    Disconnect();
+                    return false;
+                default:
+                    logger.Trace(ev);
+                    break;
             }
+
+            return true;
         }
 
         private void HandleStep(StepEvent stepEvent)
         {
             stepEvent.Request.Disable();
             _engine.Events.StepCompleted(_mainThread);
-            logger.Trace(string.Format("Stepping: {0}:{1}", stepEvent.Method.Name, stepEvent.Location));
+            logger.Trace("Stepping: {0}:{1}", stepEvent.Method.Name, stepEvent.Location);
         }
 
         private void HandleBreakPoint(BreakpointEvent bpEvent)
         {
-            var bp = _pendingBreakpoints.FirstOrDefault(x => x.LastRequest == bpEvent.Request);
-            var frames = bpEvent.Thread.GetFrames();
+            MonoPendingBreakpoint bp = _pendingBreakpoints.FirstOrDefault(x => x.LastRequest == bpEvent.Request);
+            StackFrame[] frames = bpEvent.Thread.GetFrames();
             _engine.Events.BreakpointHit(bp, _mainThread);
         }
 
@@ -143,7 +137,7 @@ namespace MonoDebugger.VS2013.Debugger
 
             try
             {
-                foreach (var bp in _pendingBreakpoints.Where(x => !x.IsBound))
+                foreach (MonoPendingBreakpoint bp in _pendingBreakpoints.Where(x => !x.IsBound))
                 {
                     MonoBreakpointLocation location;
                     if (bp.TryBind(_types, out location))
@@ -151,9 +145,9 @@ namespace MonoDebugger.VS2013.Debugger
                         try
                         {
                             int ilOffset;
-                            var position = RoslynHelper.GetILOffset(bp, location.Method, out ilOffset);
+                            StatementRange position = RoslynHelper.GetILOffset(bp, location.Method, out ilOffset);
 
-                            var request = _vm.SetBreakpoint(location.Method, ilOffset);
+                            BreakpointEventRequest request = _vm.SetBreakpoint(location.Method, ilOffset);
                             request.Enable();
                             bp.IsBound = true;
                             bp.LastRequest = request;
@@ -164,13 +158,14 @@ namespace MonoDebugger.VS2013.Debugger
                         }
                         catch (Exception ex)
                         {
-                            logger.Trace("Cant bind breakpoint: " + ex);
+                            logger.Error("Cant bind breakpoint: " + ex);
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                logger.Error("Cant bind breakpoint: " + ex);
             }
 
 
@@ -193,7 +188,7 @@ namespace MonoDebugger.VS2013.Debugger
                 {
                     TypeMirror = typeMirror,
                 });
-                
+
                 string typeName = typeMirror.Name;
                 if (!string.IsNullOrEmpty(typeMirror.Namespace))
                     typeName = typeMirror.Namespace + "." + typeMirror.Name;
@@ -207,7 +202,6 @@ namespace MonoDebugger.VS2013.Debugger
 
         internal void Break()
         {
-
         }
 
         internal void Continue()
@@ -249,23 +243,29 @@ namespace MonoDebugger.VS2013.Debugger
 
         internal void Step(MonoThread thread, enum_STEPKIND sk)
         {
-            var request = _vm.CreateStepRequest(thread.ThreadMirror);
+            if (currentStepRequest != null)
+            {
+                currentStepRequest.Disable();
+            }
+
+            currentStepRequest = _vm.CreateStepRequest(thread.ThreadMirror);
             switch (sk)
             {
                 case enum_STEPKIND.STEP_INTO:
-                    request.Depth = StepDepth.Into;
+                    currentStepRequest.Depth = StepDepth.Into;
                     break;
                 case enum_STEPKIND.STEP_OUT:
-                    request.Depth = StepDepth.Out;
+                    currentStepRequest.Depth = StepDepth.Out;
                     break;
                 case enum_STEPKIND.STEP_OVER:
-                    request.Depth = StepDepth.Over;
+                    currentStepRequest.Depth = StepDepth.Over;
                     break;
                 default:
                     return;
             }
-            request.Size = StepSize.Line;
-            request.Enable();
+            
+            currentStepRequest.Size = StepSize.Line;
+            currentStepRequest.Enable();
             _vm.Resume();
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -10,8 +11,11 @@ using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.Win32;
+using MonoDebugger.SharedLib;
 using MonoDebugger.SharedLib.Server;
 using MonoDebugger.VS2013.Debugger;
+using MonoDebugger.VS2013.Views;
+using NLog;
 using Process = System.Diagnostics.Process;
 
 namespace MonoDebugger.VS2013
@@ -21,17 +25,19 @@ namespace MonoDebugger.VS2013
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideAutoLoad("f1536ef8-92ec-443c-9ed7-fdadf150da82")]
     [Guid(GuidList.guidMonoDebugger_VS2013PkgString)]
-    public sealed class MonoDebuggerPackage : Package, IOleCommandTarget
+    public sealed class MonoDebuggerPackage : Package
     {
-        private readonly MonoDebugServer _server = new MonoDebugServer();
-        private MonoVisualStudioExtension _monoExtension;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly MonoDebugServer server = new MonoDebugServer();
+        private MonoVisualStudioExtension monoExtension;
 
         protected override void Initialize()
         {
+            MonoLogger.Setup();
             base.Initialize();
-            var dte = (DTE) GetService(typeof (DTE));
-            _monoExtension = new MonoVisualStudioExtension(dte);
-            TryRegisterAssembly(dte.RegistryRoot);
+            var dte = (DTE)GetService(typeof(DTE));
+            monoExtension = new MonoVisualStudioExtension(dte);
+            TryRegisterAssembly();
 
 
             Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary
@@ -39,25 +45,39 @@ namespace MonoDebugger.VS2013
                 Source = new Uri("/MonoDebugger.VS2013;component/Resources/Resources.xaml", UriKind.Relative)
             });
 
-            var mcs = GetService(typeof (IMenuCommandService)) as OleMenuCommandService;
+            var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if (mcs != null)
             {
                 var debugLocally = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int) PkgCmdIDList.cmdLocalDebugCode);
+                    (int)PkgCmdIDList.cmdLocalDebugCode);
                 var localCmd = new OleMenuCommand(DebugLocalClicked, debugLocally);
                 localCmd.BeforeQueryStatus += cmd_BeforeQueryStatus;
                 mcs.AddCommand(localCmd);
 
-
+                
                 var menuCommandID = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int) PkgCmdIDList.cmdRemodeDebugCode);
+                    (int)PkgCmdIDList.cmdRemodeDebugCode);
                 var cmd = new OleMenuCommand(DebugRemoteClicked, menuCommandID);
                 cmd.BeforeQueryStatus += cmd_BeforeQueryStatus;
                 mcs.AddCommand(cmd);
+
+                var cmdOpenLogFileId = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
+                    (int)PkgCmdIDList.cmdOpenLogFile);
+                var openCmd = new OleMenuCommand(OpenLogFile, cmdOpenLogFileId);
+                openCmd.BeforeQueryStatus += (o, e) => openCmd.Enabled = File.Exists(MonoLogger.LoggerPath);
+                mcs.AddCommand(openCmd);
             }
         }
 
-        private void TryRegisterAssembly(string registryRoot)
+        private void OpenLogFile(object sender, EventArgs e)
+        {
+            if (File.Exists(MonoLogger.LoggerPath))
+            {
+                Process.Start(MonoLogger.LoggerPath);
+            }
+        }
+
+        private void TryRegisterAssembly()
         {
             try
             {
@@ -66,7 +86,7 @@ namespace MonoDebugger.VS2013
                 if (regKey != null)
                     return;
 
-                string location = typeof (DebuggedMonoProcess).Assembly.Location;
+                string location = typeof(DebuggedMonoProcess).Assembly.Location;
 
                 string regasm = @"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe";
                 if (!Environment.Is64BitOperatingSystem)
@@ -95,8 +115,9 @@ namespace MonoDebugger.VS2013
                     "Failed finish installation of MonoDebugger - Please run Visual Studio once als Administrator...",
                     "MonoDebugger", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-            catch
+            catch (Exception ex)
             {
+                logger.Error(ex);
             }
         }
 
@@ -105,11 +126,11 @@ namespace MonoDebugger.VS2013
             var menuCommand = sender as OleMenuCommand;
             if (menuCommand != null)
             {
-                var dte = GetService(typeof (DTE)) as DTE;
-                var sb = (SolutionBuild2) dte.Solution.SolutionBuild;
+                var dte = GetService(typeof(DTE)) as DTE;
+                var sb = (SolutionBuild2)dte.Solution.SolutionBuild;
                 menuCommand.Visible = sb.StartupProjects != null;
                 if (menuCommand.Visible)
-                    menuCommand.Enabled = ((Array) sb.StartupProjects).Cast<string>().Count() == 1;
+                    menuCommand.Enabled = ((Array)sb.StartupProjects).Cast<string>().Count() == 1;
             }
         }
 
@@ -122,17 +143,17 @@ namespace MonoDebugger.VS2013
         {
             try
             {
-                if (!_server.IsRunning)
+                if (!server.IsRunning)
                 {
-                    _server.StartAsync();
+                    await server.StartAsync();
                 }
 
-                _monoExtension.BuildSolution();
-                await _monoExtension.AttachDebugger(MonoProcess.GetLocalIp().ToString());
+                monoExtension.BuildSolution();
+                await monoExtension.AttachDebugger(MonoProcess.GetLocalIp().ToString());
             }
             catch (Exception ex)
             {
-                Trace.WriteLine(ex);
+                logger.Error(ex);
                 MessageBox.Show(ex.Message, "MonoDebugger", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -150,12 +171,15 @@ namespace MonoDebugger.VS2013
             {
                 try
                 {
-                    _monoExtension.BuildSolution();
-                    await _monoExtension.AttachDebugger(dlg.ViewModel.SelectedServer.IpAddress.ToString());
+                    monoExtension.BuildSolution();
+                    if (dlg.ViewModel.SelectedServer != null)
+                        await monoExtension.AttachDebugger(dlg.ViewModel.SelectedServer.IpAddress.ToString());
+                    else if(!string.IsNullOrWhiteSpace(dlg.ViewModel.ManualIp))
+                        await monoExtension.AttachDebugger(dlg.ViewModel.ManualIp);
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine(ex);
+                    logger.Error(ex);
                     MessageBox.Show(ex.Message, "MonoDebugger", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }

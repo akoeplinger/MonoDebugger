@@ -39,27 +39,28 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             _engine = engine;
 
             IsEnabled = true;
+
+            var docPosition = (IDebugDocumentPosition2)Marshal.GetObjectForIUnknown(_bpRequestInfo.bpLocation.unionmember2);
+
+            string documentName;
+            docPosition.GetFileName(out documentName);
+            var startPosition = new TEXT_POSITION[1];
+            var endPosition = new TEXT_POSITION[1];
+            docPosition.GetRange(startPosition, endPosition);
+
+            DocumentName = documentName;
+            StartLine = (int)startPosition[0].dwLine;
+            StartColumn = (int)startPosition[0].dwColumn;
+
+            EndLine = (int)endPosition[0].dwLine;
+            EndColumn = (int)endPosition[0].dwColumn;
+
         }
 
         public int Bind()
         {
             try
             {
-                var docPosition = (IDebugDocumentPosition2)Marshal.GetObjectForIUnknown(_bpRequestInfo.bpLocation.unionmember2);
-
-                string documentName;
-                docPosition.GetFileName(out documentName);
-                var startPosition = new TEXT_POSITION[1];
-                var endPosition = new TEXT_POSITION[1];
-                docPosition.GetRange(startPosition, endPosition);
-
-                DocumentName = documentName;
-                StartLine = (int)startPosition[0].dwLine;
-                StartColumn = (int)startPosition[0].dwColumn;
-
-                EndLine = (int)endPosition[0].dwLine;
-                EndColumn = (int)endPosition[0].dwColumn;
-
                 _boundBreakpoint = new MonoBoundBreakpoint(_engine, this);
                 return VSConstants.S_OK;
             }
