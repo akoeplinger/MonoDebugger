@@ -99,7 +99,7 @@ namespace MonoDebugger.VS2013.Debugger
             if (ev.EventType == EventType.Breakpoint)
             {
                 HandleBreakPoint((BreakpointEvent) ev);
-                return currentStepRequest.Enabled;
+                return currentStepRequest != null && currentStepRequest.Enabled;
             }
             if (ev.EventType == EventType.Step)
             {
