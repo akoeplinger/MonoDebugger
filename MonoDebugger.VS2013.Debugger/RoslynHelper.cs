@@ -1,57 +1,52 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Mono.Debugger.Soft;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MonoDebugger.VS2013.Debugger.VisualStudio;
 using NLog;
+using Location = Microsoft.CodeAnalysis.Location;
 
 namespace MonoDebugger.VS2013.Debugger
 {
-    class RoslynHelper
+    internal class RoslynHelper
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         internal static StatementRange GetStatementRange(string fileName, int startLine, int startColumn)
         {
             try
             {
-                logger.Trace(string.Format("Line: {0} Column: {1} Source: {2}", startLine, startColumn, fileName));
+                logger.Trace("Line: {0} Column: {1} Source: {2}", startLine, startColumn, fileName);
 
 
-                var syntaxTree = CSharpSyntaxTree.ParseFile(fileName);
+                SyntaxTree syntaxTree = CSharpSyntaxTree.ParseFile(fileName);
                 SourceText text = syntaxTree.GetText();
-                var root = (CompilationUnitSyntax)syntaxTree.GetRoot();
+                var root = (CompilationUnitSyntax) syntaxTree.GetRoot();
 
                 var span = new TextSpan(text.Lines[startLine - 1].Start + startColumn, 1);
-                var node = root.FindNode(span, false, false);
+                SyntaxNode node = root.FindNode(span, false, false);
 
                 if (node is BlockSyntax)
                     return MapBlockSyntax(span, node);
-                else
+                while (node is TypeSyntax || node is MemberAccessExpressionSyntax)
+                    node = node.Parent;
+
+                Location location = node.GetLocation();
+                FileLinePositionSpan mapped = location.GetMappedLineSpan();
+
+                return new StatementRange
                 {
-                    while (node is TypeSyntax || node is MemberAccessExpressionSyntax)
-                        node = node.Parent;
-
-                    var location = node.GetLocation();
-                    var mapped = location.GetMappedLineSpan();
-
-                    return new StatementRange
-                    {
-                        StartLine = mapped.StartLinePosition.Line,
-                        StartColumn = mapped.StartLinePosition.Character,
-                        EndLine = mapped.EndLinePosition.Line,
-                        EndColumn = mapped.EndLinePosition.Character,
-                    };
-                }
+                    StartLine = mapped.StartLinePosition.Line,
+                    StartColumn = mapped.StartLinePosition.Character,
+                    EndLine = mapped.EndLinePosition.Line,
+                    EndColumn = mapped.EndLinePosition.Character,
+                };
             }
-            catch 
+            catch
             {
                 return null;
             }
@@ -59,11 +54,11 @@ namespace MonoDebugger.VS2013.Debugger
 
         private static StatementRange MapBlockSyntax(TextSpan span, SyntaxNode node)
         {
-            var block = (BlockSyntax)node;
+            var block = (BlockSyntax) node;
             bool start = Math.Abs(block.SpanStart - span.Start) < Math.Abs(block.Span.End - span.Start);
 
-            var location = block.GetLocation();
-            var mapped = location.GetMappedLineSpan();
+            Location location = block.GetLocation();
+            FileLinePositionSpan mapped = location.GetMappedLineSpan();
 
             if (start)
             {
@@ -75,26 +70,23 @@ namespace MonoDebugger.VS2013.Debugger
                     EndColumn = mapped.StartLinePosition.Character + 1,
                 };
             }
-            else
+            return new StatementRange
             {
-                return new StatementRange
-                {
-                    StartLine = mapped.EndLinePosition.Line,
-                    StartColumn = mapped.EndLinePosition.Character - 1,
-                    EndLine = mapped.EndLinePosition.Line,
-                    EndColumn = mapped.EndLinePosition.Character,
-                };
-            }
+                StartLine = mapped.EndLinePosition.Line,
+                StartColumn = mapped.EndLinePosition.Character - 1,
+                EndLine = mapped.EndLinePosition.Line,
+                EndColumn = mapped.EndLinePosition.Character,
+            };
         }
 
         internal static StatementRange GetILOffset(MonoPendingBreakpoint bp, MethodMirror methodMirror, out int ilOffset)
         {
-            var locations = methodMirror.Locations.ToList();
+            List<Mono.Debugger.Soft.Location> locations = methodMirror.Locations.ToList();
 
-            foreach (var location in locations)
+            foreach (Mono.Debugger.Soft.Location location in locations)
             {
-                var line = location.LineNumber;
-                var column = location.ColumnNumber;
+                int line = location.LineNumber;
+                int column = location.ColumnNumber;
 
                 if (line != bp.StartLine + 1)
                     continue;

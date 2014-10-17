@@ -1,39 +1,39 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MonoDebugger.SharedLib.Server
 {
     public abstract class MonoProcess
     {
-        public event EventHandler ProcessStarted;
         private int _monoDebugPort = 11000;
         protected Process _proc;
+        public event EventHandler ProcessStarted;
         internal abstract Process Start(string workingDirectory);
 
         protected void RaiseProcessStarted()
         {
-            var handler = ProcessStarted;
+            EventHandler handler = ProcessStarted;
             if (handler != null)
                 handler(this, EventArgs.Empty);
         }
 
         protected string GetProcessArgs()
         {
-            var ip = GetLocalIp();
-            var args = string.Format(@"--debugger-agent=address={0}:{1},transport=dt_socket,server=y --debug=mdb-optimizations", ip, _monoDebugPort);
+            IPAddress ip = GetLocalIp();
+            string args =
+                string.Format(
+                    @"--debugger-agent=address={0}:{1},transport=dt_socket,server=y --debug=mdb-optimizations", ip,
+                    _monoDebugPort);
             return args;
         }
 
         protected ProcessStartInfo GetProcessStartInfo(string workingDirectory, string monoBin)
         {
-            DirectoryInfo dirInfo = new DirectoryInfo(workingDirectory);
+            var dirInfo = new DirectoryInfo(workingDirectory);
             var procInfo = new ProcessStartInfo(monoBin);
             procInfo.WorkingDirectory = dirInfo.FullName;
             return procInfo;
@@ -41,8 +41,8 @@ namespace MonoDebugger.SharedLib.Server
 
         public static IPAddress GetLocalIp()
         {
-            var adresses = Dns.GetHostEntry(Dns.GetHostName()).AddressList;
-            var adr = adresses.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
+            IPAddress[] adresses = Dns.GetHostEntry(Dns.GetHostName()).AddressList;
+            IPAddress adr = adresses.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
             return adr;
         }
 
@@ -50,7 +50,7 @@ namespace MonoDebugger.SharedLib.Server
         {
             if (type == ApplicationType.Desktopapplication)
                 return new MonoDesktopProcess(_targetExe);
-            else if (type == ApplicationType.Webapplication)
+            if (type == ApplicationType.Webapplication)
                 return new MonoWebProcess();
 
             throw new Exception("Unknown ApplicationType");

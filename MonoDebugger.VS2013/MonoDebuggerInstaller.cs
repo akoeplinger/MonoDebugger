@@ -1,11 +1,5 @@
-﻿using Microsoft.Win32;
-using MonoDebugger.VS2013.Debugger;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
+using Microsoft.Win32;
 using MonoDebugger.VS2013.Debugger.VisualStudio;
 
 namespace MonoDebugger.VS2013
@@ -17,9 +11,9 @@ namespace MonoDebugger.VS2013
 
         public static void RegisterDebugEngine(string dllPath, RegistryKey rootKey)
         {
-            using (var engine = rootKey.OpenSubKey(@"AD7Metrics\Engine\", true))
+            using (RegistryKey engine = rootKey.OpenSubKey(@"AD7Metrics\Engine\", true))
             {
-                var engineGuid = MonoGuids.EngineGuid.ToString("B").ToUpper();
+                string engineGuid = MonoGuids.EngineGuid.ToString("B").ToUpper();
                 using (RegistryKey engineKey = engine.CreateSubKey(engineGuid))
                 {
                     engineKey.SetValue("CLSID", MonoGuids.EngineGuid.ToString("B").ToUpper());
@@ -34,9 +28,9 @@ namespace MonoDebugger.VS2013
                 }
             }
 
-            using (var clsid = rootKey.OpenSubKey(CLSID_PATH, true))
+            using (RegistryKey clsid = rootKey.OpenSubKey(CLSID_PATH, true))
             {
-                using (var clsidKey = clsid.CreateSubKey(MonoGuids.EngineGuid.ToString("B").ToUpper()))
+                using (RegistryKey clsidKey = clsid.CreateSubKey(MonoGuids.EngineGuid.ToString("B").ToUpper()))
                 {
                     clsidKey.SetValue("Assembly", Assembly.GetExecutingAssembly().GetName().Name);
                     clsidKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.VisualStudio.MonoEngine");
@@ -44,7 +38,9 @@ namespace MonoDebugger.VS2013
                     clsidKey.SetValue("CodeBase", dllPath);
                 }
 
-                using (var programProviderKey = clsid.CreateSubKey(MonoGuids.ProgramProviderGuid.ToString("B").ToUpper()))
+                using (
+                    RegistryKey programProviderKey =
+                        clsid.CreateSubKey(MonoGuids.ProgramProviderGuid.ToString("B").ToUpper()))
                 {
                     programProviderKey.SetValue("Assembly", Assembly.GetExecutingAssembly().GetName().Name);
                     programProviderKey.SetValue("Class", "MonoDebugger.VS2013.Debugger.VisualStudio.MonoProgramProvider");

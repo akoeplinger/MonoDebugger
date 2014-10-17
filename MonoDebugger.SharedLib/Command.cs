@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
+﻿using System.Runtime.Serialization;
 
 namespace MonoDebugger.SharedLib
 {
     [DataContract]
     public enum Command : byte
     {
-        [EnumMember]
-        DebugContent,
-        [EnumMember]
-        StartedMono
+        [EnumMember] DebugContent,
+        [EnumMember] StartedMono
     }
 }

@@ -9,26 +9,16 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Debugger.Interop;
 using Mono.Debugger.Soft;
+using Location = Microsoft.CodeAnalysis.Location;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class MonoPendingBreakpoint : IDebugPendingBreakpoint2
+    internal class MonoPendingBreakpoint : IDebugPendingBreakpoint2
     {
-        public bool IsBound { get; set; }
-        public bool IsEnabled { get; private set; }
-        public bool IsDeleted { get; private set; }
-        public int StartLine { get; private set; }
-        public int StartColumn { get; private set; }
-        public int EndLine { get; private set; }
-        public int EndColumn { get; private set; }
-        public string DocumentName { get; set; }
-        public MonoThread CurrentThread { get; set; }
-        public EventRequest LastRequest { get; set; }
-
-        private BP_REQUEST_INFO _bpRequestInfo;
-        private IDebugBreakpointRequest2 _pBPRequest;
+        private readonly MonoEngine _engine;
+        private readonly IDebugBreakpointRequest2 _pBPRequest;
         private MonoBoundBreakpoint _boundBreakpoint;
-        private MonoEngine _engine;
+        private BP_REQUEST_INFO _bpRequestInfo;
 
         public MonoPendingBreakpoint(MonoEngine engine, IDebugBreakpointRequest2 pBPRequest)
         {
@@ -40,7 +30,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
             IsEnabled = true;
 
-            var docPosition = (IDebugDocumentPosition2)Marshal.GetObjectForIUnknown(_bpRequestInfo.bpLocation.unionmember2);
+            var docPosition =
+                (IDebugDocumentPosition2) Marshal.GetObjectForIUnknown(_bpRequestInfo.bpLocation.unionmember2);
 
             string documentName;
             docPosition.GetFileName(out documentName);
@@ -49,13 +40,23 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             docPosition.GetRange(startPosition, endPosition);
 
             DocumentName = documentName;
-            StartLine = (int)startPosition[0].dwLine;
-            StartColumn = (int)startPosition[0].dwColumn;
+            StartLine = (int) startPosition[0].dwLine;
+            StartColumn = (int) startPosition[0].dwColumn;
 
-            EndLine = (int)endPosition[0].dwLine;
-            EndColumn = (int)endPosition[0].dwColumn;
-
+            EndLine = (int) endPosition[0].dwLine;
+            EndColumn = (int) endPosition[0].dwColumn;
         }
+
+        public bool IsBound { get; set; }
+        public bool IsEnabled { get; private set; }
+        public bool IsDeleted { get; private set; }
+        public int StartLine { get; private set; }
+        public int StartColumn { get; private set; }
+        public int EndLine { get; private set; }
+        public int EndColumn { get; private set; }
+        public string DocumentName { get; set; }
+        public MonoThread CurrentThread { get; set; }
+        public EventRequest LastRequest { get; set; }
 
         public int Bind()
         {
@@ -73,7 +74,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public int CanBind(out IEnumDebugErrorBreakpoints2 ppErrorEnum)
         {
             ppErrorEnum = null;
-            if (_bpRequestInfo.bpLocation.bpLocationType == (uint)enum_BP_LOCATION_TYPE.BPLT_CODE_FILE_LINE)
+            if (_bpRequestInfo.bpLocation.bpLocationType == (uint) enum_BP_LOCATION_TYPE.BPLT_CODE_FILE_LINE)
                 return VSConstants.S_OK;
 
             return VSConstants.S_FALSE;
@@ -92,7 +93,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         public int EnumBoundBreakpoints(out IEnumDebugBoundBreakpoints2 ppEnum)
         {
-            ppEnum = new MonoBoundBreakpointEnumerator(new[] { _boundBreakpoint });
+            ppEnum = new MonoBoundBreakpointEnumerator(new[] {_boundBreakpoint});
             return VSConstants.S_OK;
         }
 
@@ -146,24 +147,24 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             {
                 SyntaxTree syntaxTree = CSharpSyntaxTree.ParseFile(DocumentName);
                 TextLine textLine = syntaxTree.GetText().Lines[StartLine];
-                Microsoft.CodeAnalysis.Location location = syntaxTree.GetLocation(textLine.Span);
+                Location location = syntaxTree.GetLocation(textLine.Span);
                 SyntaxTree sourceTree = location.SourceTree;
-                var node = location.SourceTree.GetRoot().FindNode(location.SourceSpan, true, true);
+                SyntaxNode node = location.SourceTree.GetRoot().FindNode(location.SourceSpan, true, true);
 
                 var method = GetParentMethod<MethodDeclarationSyntax>(node.Parent);
-                var methodName = method.Identifier.Text;
+                string methodName = method.Identifier.Text;
 
                 var cl = GetParentMethod<ClassDeclarationSyntax>(method);
-                var className = cl.Identifier.Text;
+                string className = cl.Identifier.Text;
 
                 var ns = GetParentMethod<NamespaceDeclarationSyntax>(method);
-                var nsname = ns.Name.ToString();
+                string nsname = ns.Name.ToString();
 
-                var name = string.Format("{0}.{1}", nsname, className);
+                string name = string.Format("{0}.{1}", nsname, className);
                 TypeSummary summary;
                 if (types.TryGetValue(name, out summary))
                 {
-                    var methodMirror = summary.Methods.FirstOrDefault(x => x.Name == methodName);
+                    MethodMirror methodMirror = summary.Methods.FirstOrDefault(x => x.Name == methodName);
 
                     if (methodMirror != null)
                     {
@@ -191,8 +192,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
             if (node is T)
                 return node as T;
-            else
-                return GetParentMethod<T>(node.Parent);
+            return GetParentMethod<T>(node.Parent);
         }
     }
 }

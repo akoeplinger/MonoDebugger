@@ -11,9 +11,9 @@ namespace MonoDebugger.SharedLib.Server
     {
         private readonly TcpCommunication communication;
         private readonly string directoryName;
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
         private readonly IPAddress remoteEndpoint;
         private readonly string root = Path.Combine(Path.GetTempPath(), "MonoDebugger");
-        private readonly Logger logger = LogManager.GetCurrentClassLogger();
         private Process proc;
         private string targetExe;
 

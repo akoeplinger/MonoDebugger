@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using EnvDTE;
 using EnvDTE80;
-using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.Win32;
@@ -28,14 +27,14 @@ namespace MonoDebugger.VS2013
     public sealed class MonoDebuggerPackage : Package
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private MonoDebugServer server = new MonoDebugServer();
         private MonoVisualStudioExtension monoExtension;
+        private MonoDebugServer server = new MonoDebugServer();
 
         protected override void Initialize()
         {
             MonoLogger.Setup();
             base.Initialize();
-            var dte = (DTE)GetService(typeof(DTE));
+            var dte = (DTE) GetService(typeof (DTE));
             monoExtension = new MonoVisualStudioExtension(dte);
             TryRegisterAssembly();
 
@@ -45,7 +44,7 @@ namespace MonoDebugger.VS2013
                 Source = new Uri("/MonoDebugger.VS2013;component/Resources/Resources.xaml", UriKind.Relative)
             });
 
-            var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
+            var mcs = GetService(typeof (IMenuCommandService)) as OleMenuCommandService;
             InstallMenu(mcs);
         }
 
@@ -54,20 +53,20 @@ namespace MonoDebugger.VS2013
             if (mcs != null)
             {
                 var debugLocally = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int)PkgCmdIDList.cmdLocalDebugCode);
+                    (int) PkgCmdIDList.cmdLocalDebugCode);
                 var localCmd = new OleMenuCommand(DebugLocalClicked, debugLocally);
                 localCmd.BeforeQueryStatus += cmd_BeforeQueryStatus;
                 mcs.AddCommand(localCmd);
 
 
                 var menuCommandID = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int)PkgCmdIDList.cmdRemodeDebugCode);
+                    (int) PkgCmdIDList.cmdRemodeDebugCode);
                 var cmd = new OleMenuCommand(DebugRemoteClicked, menuCommandID);
                 cmd.BeforeQueryStatus += cmd_BeforeQueryStatus;
                 mcs.AddCommand(cmd);
 
                 var cmdOpenLogFileId = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int)PkgCmdIDList.cmdOpenLogFile);
+                    (int) PkgCmdIDList.cmdOpenLogFile);
                 var openCmd = new OleMenuCommand(OpenLogFile, cmdOpenLogFileId);
                 openCmd.BeforeQueryStatus += (o, e) => openCmd.Enabled = File.Exists(MonoLogger.LoggerPath);
                 mcs.AddCommand(openCmd);
@@ -91,7 +90,7 @@ namespace MonoDebugger.VS2013
                 if (regKey != null)
                     return;
 
-                string location = typeof(DebuggedMonoProcess).Assembly.Location;
+                string location = typeof (DebuggedMonoProcess).Assembly.Location;
 
                 string regasm = @"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe";
                 if (!Environment.Is64BitOperatingSystem)
@@ -131,11 +130,11 @@ namespace MonoDebugger.VS2013
             var menuCommand = sender as OleMenuCommand;
             if (menuCommand != null)
             {
-                var dte = GetService(typeof(DTE)) as DTE;
-                var sb = (SolutionBuild2)dte.Solution.SolutionBuild;
+                var dte = GetService(typeof (DTE)) as DTE;
+                var sb = (SolutionBuild2) dte.Solution.SolutionBuild;
                 menuCommand.Visible = sb.StartupProjects != null;
                 if (menuCommand.Visible)
-                    menuCommand.Enabled = ((Array)sb.StartupProjects).Cast<string>().Count() == 1;
+                    menuCommand.Enabled = ((Array) sb.StartupProjects).Cast<string>().Count() == 1;
             }
         }
 

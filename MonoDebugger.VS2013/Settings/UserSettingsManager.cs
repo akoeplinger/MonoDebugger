@@ -8,16 +8,16 @@ namespace MonoDebugger.VS2013.Settings
     public class UserSettingsManager
     {
         private static readonly string settingsPath = Path.Combine(Directory.GetCurrentDirectory(), "Settings.json");
-        private static Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public UserSettings Load()
         {
-            var result = new UserSettings(); 
+            var result = new UserSettings();
             if (File.Exists(settingsPath))
             {
                 try
                 {
-                    var content = File.ReadAllText(settingsPath);
+                    string content = File.ReadAllText(settingsPath);
                     result = JsonConvert.DeserializeObject<UserSettings>(content);
                     return result;
                 }
@@ -32,7 +32,7 @@ namespace MonoDebugger.VS2013.Settings
 
         public void Save(UserSettings settings)
         {
-            var json = JsonConvert.SerializeObject(settings);
+            string json = JsonConvert.SerializeObject(settings);
             File.WriteAllText(settingsPath, json);
         }
     }

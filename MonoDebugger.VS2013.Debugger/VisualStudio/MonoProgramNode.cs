@@ -6,8 +6,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     public class MonoProgramNode : IDebugProgramNode2
     {
-        private Guid _processId;
-        private DebuggedMonoProcess _process;
+        private readonly DebuggedMonoProcess _process;
+        private readonly Guid _processId;
 
         public MonoProgramNode(DebuggedMonoProcess process, Guid processId)
         {
@@ -53,7 +53,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public int GetHostPid(AD_PROCESS_ID[] pHostProcessId)
         {
             DebugHelper.TraceEnteringMethod();
-            pHostProcessId[0].ProcessIdType = (uint)enum_AD_PROCESS_ID.AD_PROCESS_ID_GUID;
+            pHostProcessId[0].ProcessIdType = (uint) enum_AD_PROCESS_ID.AD_PROCESS_ID_GUID;
             pHostProcessId[0].guidProcessId = _processId;
             return VSConstants.S_OK;
         }

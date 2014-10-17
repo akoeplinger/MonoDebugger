@@ -1,8 +1,4 @@
 ﻿using Mono.Debugger.Soft;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace MonoDebugger.VS2013.Debugger
 {
@@ -16,7 +12,7 @@ namespace MonoDebugger.VS2013.Debugger
         {
             get
             {
-                lock(this)
+                lock (this)
                 {
                     if (_methods == null && TypeMirror != null)
                         _methods = TypeMirror.GetMethods();

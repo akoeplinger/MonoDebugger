@@ -1,16 +1,13 @@
-﻿using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Debugger.Interop;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
-using System.Linq;
-using System.Text;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Debugger.Interop;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class MonoDocument : IDebugDocument2
+    internal class MonoDocument : IDebugDocument2
     {
-        private MonoPendingBreakpoint _pendingBreakpoint;
+        private readonly MonoPendingBreakpoint _pendingBreakpoint;
 
         public MonoDocument(MonoPendingBreakpoint pendingBreakpoint)
         {

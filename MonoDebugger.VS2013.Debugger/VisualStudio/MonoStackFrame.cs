@@ -1,19 +1,18 @@
-﻿using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Debugger.Interop;
-using Mono.Debugger.Soft;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Debugger.Interop;
+using Mono.Debugger.Soft;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class MonoStackFrame : IDebugStackFrame2, IDebugExpressionContext2
+    internal class MonoStackFrame : IDebugStackFrame2, IDebugExpressionContext2
     {
-        private StackFrame _frame;
-        private MonoDocumentContext _docContext;
-        private MonoProperty _locals;
-        private MonoThread _thread;
+        private readonly MonoDocumentContext _docContext;
+        private readonly StackFrame _frame;
+        private readonly MonoProperty _locals;
+        private readonly MonoThread _thread;
         private readonly DebuggedMonoProcess debuggedMonoProcess;
 
         public MonoStackFrame(MonoThread thread, DebuggedMonoProcess debuggedMonoProcess, StackFrame frame)
@@ -23,31 +22,37 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             _frame = frame;
 
             _docContext = new MonoDocumentContext(_frame.FileName,
-                                                  _frame.LineNumber,
-                                                  _frame.ColumnNumber);
-            var locals = frame.GetVisibleVariables().ToList();
+                _frame.LineNumber,
+                _frame.ColumnNumber);
+            List<LocalVariable> locals = frame.GetVisibleVariables().ToList();
             _locals = new MonoProperty(frame, locals);
         }
 
-        internal FRAMEINFO GetFrameInfo(enum_FRAMEINFO_FLAGS dwFieldSpec)
+        public int ParseText(string pszCode, enum_PARSEFLAGS dwFlags, uint nRadix, out IDebugExpression2 ppExpr,
+            out string pbstrError, out uint pichError)
         {
-            var frameInfo = new FRAMEINFO();
-            frameInfo.m_bstrFuncName = _frame.Location.Method.Name;
-            frameInfo.m_bstrModule = _frame.FileName;
-            frameInfo.m_pFrame = this;
-            frameInfo.m_fHasDebugInfo = 1;
-            frameInfo.m_fStaleCode = 0;
+            pbstrError = "";
+            pichError = 0;
+            ppExpr = null;
+            string lookup = pszCode;
 
-            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_STALECODE;
-            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_DEBUGINFO;
-            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_MODULE;
-            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME;
-            return frameInfo;
+
+            LocalVariable result = _frame.GetVisibleVariableByName(lookup);
+            if (result != null)
+            {
+                ppExpr = new TrivialMonoExpression(new MonoProperty(_frame, new[] {result}));
+                return VSConstants.S_OK;
+            }
+
+            pbstrError = "Unsupported Expression";
+            pichError = (uint) pbstrError.Length;
+            return VSConstants.S_FALSE;
         }
 
-        public int EnumProperties(enum_DEBUGPROP_INFO_FLAGS dwFields, uint nRadix, ref Guid guidFilter, uint dwTimeout, out uint pcelt, out IEnumDebugPropertyInfo2 ppEnum)
+        public int EnumProperties(enum_DEBUGPROP_INFO_FLAGS dwFields, uint nRadix, ref Guid guidFilter, uint dwTimeout,
+            out uint pcelt, out IEnumDebugPropertyInfo2 ppEnum)
         {
-            var res = _locals.EnumChildren(dwFields, nRadix, ref guidFilter, 0, null, dwTimeout, out ppEnum);
+            int res = _locals.EnumChildren(dwFields, nRadix, ref guidFilter, 0, null, dwTimeout, out ppEnum);
             if (ppEnum != null)
                 ppEnum.GetCount(out pcelt);
             else
@@ -63,7 +68,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         public int GetDebugProperty(out IDebugProperty2 ppProperty)
         {
-            ppProperty = null;// _locals;
+            ppProperty = null; // _locals;
             return VSConstants.S_OK;
         }
 
@@ -111,25 +116,20 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             return VSConstants.S_OK;
         }
 
-        public int ParseText(string pszCode, enum_PARSEFLAGS dwFlags, uint nRadix, out IDebugExpression2 ppExpr, out string pbstrError, out uint pichError)
+        internal FRAMEINFO GetFrameInfo(enum_FRAMEINFO_FLAGS dwFieldSpec)
         {
-            pbstrError = "";
-            pichError = 0;
-            ppExpr = null;
-            var lookup = pszCode;
-            
-            
+            var frameInfo = new FRAMEINFO();
+            frameInfo.m_bstrFuncName = _frame.Location.Method.Name;
+            frameInfo.m_bstrModule = _frame.FileName;
+            frameInfo.m_pFrame = this;
+            frameInfo.m_fHasDebugInfo = 1;
+            frameInfo.m_fStaleCode = 0;
 
-            var result = _frame.GetVisibleVariableByName(lookup);
-            if (result != null)
-            {
-                ppExpr = new TrivialMonoExpression(new MonoProperty(_frame, new[] { result }));
-                return VSConstants.S_OK;
-            } 
-
-            pbstrError = "Unsupported Expression";
-            pichError = (uint)pbstrError.Length;
-            return VSConstants.S_FALSE;
+            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_STALECODE;
+            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_DEBUGINFO;
+            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_MODULE;
+            frameInfo.m_dwValidFields |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME;
+            return frameInfo;
         }
     }
 }

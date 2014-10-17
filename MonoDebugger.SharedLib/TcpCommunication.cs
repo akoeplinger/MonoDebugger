@@ -4,31 +4,37 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace MonoDebugger.SharedLib
 {
     public class TcpCommunication
     {
-        public bool IsConnected { get { return _socket.IsSocketConnected(); } }
-
-        private Socket _socket;
-        private DataContractSerializer _serializer;
+        private readonly DataContractSerializer _serializer;
+        private readonly Socket _socket;
 
         public TcpCommunication(Socket socket)
         {
             _socket = socket;
-            var contracts = GetType().Assembly.GetTypes().Where(x => x.GetCustomAttributes(typeof(DataContractAttribute), true).Any()).ToList();
-            _serializer = new DataContractSerializer(typeof(MessageBase), contracts);
+            List<Type> contracts =
+                GetType()
+                    .Assembly.GetTypes()
+                    .Where(x => x.GetCustomAttributes(typeof (DataContractAttribute), true).Any())
+                    .ToList();
+            _serializer = new DataContractSerializer(typeof (MessageBase), contracts);
+        }
+
+        public bool IsConnected
+        {
+            get { return _socket.IsSocketConnected(); }
         }
 
         public void Send(Command cmd, object payload)
         {
             using (var ms = new MemoryStream())
             {
-                _serializer.WriteObject(ms, new MessageBase { Command = cmd, Payload = payload });
-                var buffer = ms.ToArray();
+                _serializer.WriteObject(ms, new MessageBase {Command = cmd, Payload = payload});
+                byte[] buffer = ms.ToArray();
                 _socket.Send(BitConverter.GetBytes(buffer.Length));
                 _socket.Send(buffer);
             }
@@ -36,9 +42,9 @@ namespace MonoDebugger.SharedLib
 
         public MessageBase Receive()
         {
-            var buffer = new byte[sizeof(int)];
+            var buffer = new byte[sizeof (int)];
             int received = _socket.Receive(buffer);
-            var size = BitConverter.ToInt32(buffer, 0);
+            int size = BitConverter.ToInt32(buffer, 0);
             return ReceiveContent(size);
         }
 
@@ -49,7 +55,7 @@ namespace MonoDebugger.SharedLib
                 int totalReceived = 0;
                 while (totalReceived != size)
                 {
-                    var buffer = new byte[Math.Min(1024 * 10, size - totalReceived)];
+                    var buffer = new byte[Math.Min(1024*10, size - totalReceived)];
                     int received = _socket.Receive(buffer);
                     totalReceived += received;
                     ms.Write(buffer, 0, received);

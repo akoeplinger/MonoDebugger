@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MonoDebugger.SharedLib.Server
 {
-    class MonoDesktopProcess : MonoProcess
+    internal class MonoDesktopProcess : MonoProcess
     {
-        private string _targetExe;
+        private readonly string _targetExe;
 
         public MonoDesktopProcess(string targetExe)
         {
@@ -19,10 +14,10 @@ namespace MonoDebugger.SharedLib.Server
 
         internal override Process Start(string workingDirectory)
         {
-            var monoBin = MonoUtils.GetMonoPath();
-            DirectoryInfo dirInfo = new DirectoryInfo(workingDirectory);
+            string monoBin = MonoUtils.GetMonoPath();
+            var dirInfo = new DirectoryInfo(workingDirectory);
 
-            var args = GetProcessArgs();
+            string args = GetProcessArgs();
             ProcessStartInfo procInfo = GetProcessStartInfo(workingDirectory, monoBin);
             procInfo.Arguments = args + " \"" + _targetExe + "\"";
 

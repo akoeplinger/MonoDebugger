@@ -10,6 +10,14 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
     [Guid(MonoGuids.EngineString)]
     public class MonoEngine : IDebugEngine2, IDebugEngineLaunch2, IDebugProgram3
     {
+        private readonly AsyncDispatcher _dispatcher = new AsyncDispatcher();
+        private Guid _programId;
+
+        public MonoEngine()
+        {
+            Instance = this;
+        }
+
         public static MonoEngine Instance { get; private set; }
 
         public DebuggedMonoProcess DebuggedProcess { get; private set; }
@@ -17,15 +25,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public MonoProgramNode Node { get; private set; }
         public MonoProcess RemoteProcess { get; private set; }
 
-        public MonoEngine()
-        {
-            Instance = this;
-        }
-
-        private AsyncDispatcher _dispatcher = new AsyncDispatcher();
-        private Guid _programId;
-
-        public int Attach(IDebugProgram2[] rgpPrograms, IDebugProgramNode2[] rgpProgramNodes, uint celtPrograms, IDebugEventCallback2 pCallback, enum_ATTACH_REASON dwReason)
+        public int Attach(IDebugProgram2[] rgpPrograms, IDebugProgramNode2[] rgpProgramNodes, uint celtPrograms,
+            IDebugEventCallback2 pCallback, enum_ATTACH_REASON dwReason)
         {
             DebugHelper.TraceEnteringMethod();
 
@@ -44,52 +45,9 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         {
             DebugHelper.TraceEnteringMethod();
 
-            var breakpoint = DebuggedProcess.AddPendingBreakpoint(pBPRequest);
+            MonoPendingBreakpoint breakpoint = DebuggedProcess.AddPendingBreakpoint(pBPRequest);
             ppPendingBP = breakpoint;
 
-            return VSConstants.S_OK;
-        }
-
-        public int LaunchSuspended(string pszServer, IDebugPort2 pPort, string pszExe, string pszArgs, string pszDir, string bstrEnv, string pszOptions, enum_LAUNCH_FLAGS dwLaunchFlags, uint hStdInput, uint hStdOutput, uint hStdError, IDebugEventCallback2 pCallback, out IDebugProcess2 ppProcess)
-        {
-            DebugHelper.TraceEnteringMethod();
-
-            Events = new MonoDebuggerEvents(this, pCallback);
-            DebuggedProcess = new DebuggedMonoProcess(this, IPAddress.Parse(pszArgs));
-            DebuggedProcess.ApplicationClosed += _debuggedProcess_ApplicationClosed;
-
-            ppProcess = RemoteProcess = new MonoProcess(pPort);
-            return VSConstants.S_OK;
-        }
-
-        void _debuggedProcess_ApplicationClosed(object sender, EventArgs e)
-        {
-            _dispatcher.Stop();
-            Events.ProgramDestroyed(this);
-        }
-
-        public int ResumeProcess(IDebugProcess2 pProcess)
-        {
-            DebugHelper.TraceEnteringMethod();
-            IDebugPort2 port;
-            pProcess.GetPort(out port);
-            Guid id;
-            pProcess.GetProcessId(out id);
-            var defaultPort = (IDebugDefaultPort2)port;
-            IDebugPortNotify2 notify;
-            defaultPort.GetPortNotify(out notify);
-
-            int result = notify.AddProgramNode(Node = new MonoProgramNode(DebuggedProcess, id));
-
-            return VSConstants.S_OK;
-        }
-
-        public int TerminateProcess(IDebugProcess2 pProcess)
-        {
-            DebugHelper.TraceEnteringMethod();
-            _dispatcher.Queue(() => DebuggedProcess.Terminate());
-            _dispatcher.Stop();
-            Events.ProgramDestroyed(this);
             return VSConstants.S_OK;
         }
 
@@ -162,6 +120,45 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             return VSConstants.S_OK;
         }
 
+        public int LaunchSuspended(string pszServer, IDebugPort2 pPort, string pszExe, string pszArgs, string pszDir,
+            string bstrEnv, string pszOptions, enum_LAUNCH_FLAGS dwLaunchFlags, uint hStdInput, uint hStdOutput,
+            uint hStdError, IDebugEventCallback2 pCallback, out IDebugProcess2 ppProcess)
+        {
+            DebugHelper.TraceEnteringMethod();
+
+            Events = new MonoDebuggerEvents(this, pCallback);
+            DebuggedProcess = new DebuggedMonoProcess(this, IPAddress.Parse(pszArgs));
+            DebuggedProcess.ApplicationClosed += _debuggedProcess_ApplicationClosed;
+
+            ppProcess = RemoteProcess = new MonoProcess(pPort);
+            return VSConstants.S_OK;
+        }
+
+        public int ResumeProcess(IDebugProcess2 pProcess)
+        {
+            DebugHelper.TraceEnteringMethod();
+            IDebugPort2 port;
+            pProcess.GetPort(out port);
+            Guid id;
+            pProcess.GetProcessId(out id);
+            var defaultPort = (IDebugDefaultPort2) port;
+            IDebugPortNotify2 notify;
+            defaultPort.GetPortNotify(out notify);
+
+            int result = notify.AddProgramNode(Node = new MonoProgramNode(DebuggedProcess, id));
+
+            return VSConstants.S_OK;
+        }
+
+        public int TerminateProcess(IDebugProcess2 pProcess)
+        {
+            DebugHelper.TraceEnteringMethod();
+            _dispatcher.Queue(() => DebuggedProcess.Terminate());
+            _dispatcher.Stop();
+            Events.ProgramDestroyed(this);
+            return VSConstants.S_OK;
+        }
+
         public int CanTerminateProcess(IDebugProcess2 pProcess)
         {
             DebugHelper.TraceEnteringMethod();
@@ -202,7 +199,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             return VSConstants.E_NOTIMPL;
         }
 
-        public int EnumCodePaths(string pszHint, IDebugCodeContext2 pStart, IDebugStackFrame2 pFrame, int fSource, out IEnumCodePaths2 ppEnum, out IDebugCodeContext2 ppSafety)
+        public int EnumCodePaths(string pszHint, IDebugCodeContext2 pStart, IDebugStackFrame2 pFrame, int fSource,
+            out IEnumCodePaths2 ppEnum, out IDebugCodeContext2 ppSafety)
         {
             ppEnum = null;
             ppSafety = null;
@@ -225,17 +223,17 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         {
             return VSConstants.E_NOTIMPL;
         }
-        
+
         public int Step(IDebugThread2 pThread, enum_STEPKIND sk, enum_STEPUNIT Step)
         {
-            var thread = (MonoThread)pThread;
+            var thread = (MonoThread) pThread;
             _dispatcher.Queue(() => DebuggedProcess.Step(thread, sk));
             return VSConstants.S_OK;
         }
 
         public int ExecuteOnThread(IDebugThread2 pThread)
         {
-            var thread = (MonoThread)pThread;
+            var thread = (MonoThread) pThread;
             _dispatcher.Queue(() => DebuggedProcess.Execute(thread));
             return VSConstants.S_OK;
         }
@@ -245,7 +243,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             throw new NotImplementedException();
         }
 
-        public int GetDisassemblyStream(enum_DISASSEMBLY_STREAM_SCOPE dwScope, IDebugCodeContext2 pCodeContext, out IDebugDisassemblyStream2 ppDisassemblyStream)
+        public int GetDisassemblyStream(enum_DISASSEMBLY_STREAM_SCOPE dwScope, IDebugCodeContext2 pCodeContext,
+            out IDebugDisassemblyStream2 ppDisassemblyStream)
         {
             ppDisassemblyStream = null;
             return VSConstants.E_NOTIMPL;
@@ -289,6 +288,12 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public int WriteDump(enum_DUMPTYPE DUMPTYPE, string pszDumpUrl)
         {
             throw new NotImplementedException();
+        }
+
+        private void _debuggedProcess_ApplicationClosed(object sender, EventArgs e)
+        {
+            _dispatcher.Stop();
+            Events.ProgramDestroyed(this);
         }
     }
 }

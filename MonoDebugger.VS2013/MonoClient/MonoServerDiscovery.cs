@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -15,13 +12,13 @@ namespace MonoDebugger.VS2013.MonoClient
         {
             using (var udp = new UdpClient(new IPEndPoint(IPAddress.Any, 15000)))
             {
-                var result = await Task.WhenAny(udp.ReceiveAsync(), Task.Delay(500, token));
+                Task result = await Task.WhenAny(udp.ReceiveAsync(), Task.Delay(500, token));
                 var task = result as Task<UdpReceiveResult>;
                 if (task != null)
                 {
-                    var udpResult = task.Result;
-                    var msg = Encoding.Default.GetString(udpResult.Buffer);
-                    return new MonoServerInformation { Message = msg, IpAddress = udpResult.RemoteEndPoint.Address };
+                    UdpReceiveResult udpResult = task.Result;
+                    string msg = Encoding.Default.GetString(udpResult.Buffer);
+                    return new MonoServerInformation {Message = msg, IpAddress = udpResult.RemoteEndPoint.Address};
                 }
 
                 return null;

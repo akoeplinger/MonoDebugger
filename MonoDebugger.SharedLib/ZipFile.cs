@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Ionic.Zip;
 
 namespace MonoDebugger.SharedLib
 {
@@ -19,9 +15,9 @@ namespace MonoDebugger.SharedLib
 
         public static void ExtractToDirectory(string ZipFileName, string targetDirectory)
         {
-            using (var zip = Ionic.Zip.ZipFile.Read(ZipFileName))
+            using (Ionic.Zip.ZipFile zip = Ionic.Zip.ZipFile.Read(ZipFileName))
             {
-                foreach (var e in zip)
+                foreach (ZipEntry e in zip)
                 {
                     e.Extract(targetDirectory);
                 }

@@ -14,8 +14,13 @@ namespace MonoDebugger.SharedLib.Server
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
 
-        private TcpListener tcp;
         private Task listeningTask;
+        private TcpListener tcp;
+
+        public void Dispose()
+        {
+            Stop();
+        }
 
         public void Start()
         {
@@ -54,7 +59,7 @@ namespace MonoDebugger.SharedLib.Server
             {
                 try
                 {
-                    var token = cts.Token;
+                    CancellationToken token = cts.Token;
                     logger.Trace("Start announcing");
                     using (var client = new UdpClient())
                     {
@@ -72,18 +77,12 @@ namespace MonoDebugger.SharedLib.Server
                 }
                 catch (OperationCanceledException)
                 {
-                    
                 }
                 catch (Exception ex)
                 {
                     logger.Trace(ex);
                 }
             });
-        }
-
-        public void Dispose()
-        {
-            Stop();
         }
 
         public void WaitForExit()

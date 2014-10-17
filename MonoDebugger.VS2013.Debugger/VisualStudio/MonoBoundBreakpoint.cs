@@ -4,10 +4,10 @@ using Microsoft.VisualStudio.Debugger.Interop;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class MonoBoundBreakpoint : IDebugBoundBreakpoint2, IDebugBreakpointResolution2
+    internal class MonoBoundBreakpoint : IDebugBoundBreakpoint2, IDebugBreakpointResolution2
     {
-        private MonoPendingBreakpoint _pendingBreakpoint;
-        private MonoEngine _engine;
+        private readonly MonoEngine _engine;
+        private readonly MonoPendingBreakpoint _pendingBreakpoint;
 
         public MonoBoundBreakpoint(MonoEngine engine, MonoPendingBreakpoint pendingBreakpoint)
         {

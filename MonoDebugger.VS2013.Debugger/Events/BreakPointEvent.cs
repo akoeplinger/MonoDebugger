@@ -4,11 +4,11 @@ using MonoDebugger.VS2013.Debugger.VisualStudio;
 
 namespace MonoDebugger.VS2013.Debugger.Events
 {
-    class BreakPointEvent : AsynchronousEvent, IDebugBreakpointBoundEvent2
+    internal class BreakPointEvent : AsynchronousEvent, IDebugBreakpointBoundEvent2
     {
         public const string IID = "1DDDB704-CF99-4B8A-B746-DABB01DD13A0";
 
-        private MonoPendingBreakpoint _breakpoint;
+        private readonly MonoPendingBreakpoint _breakpoint;
 
         public BreakPointEvent(MonoPendingBreakpoint breakpoint)
         {

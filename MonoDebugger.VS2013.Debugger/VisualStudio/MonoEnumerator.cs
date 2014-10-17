@@ -1,16 +1,13 @@
-﻿using Microsoft.VisualStudio;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.VisualStudio;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class MonoEnumerator<T, I> where I : class
+    internal class MonoEnumerator<T, I> where I : class
     {
-        readonly T[] m_data;
-        uint m_position;
+        private readonly T[] m_data;
+        private uint m_position;
 
         public MonoEnumerator(IEnumerable<T> data)
         {
@@ -26,7 +23,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         public int GetCount(out uint pcelt)
         {
-            pcelt = (uint)m_data.Length;
+            pcelt = (uint) m_data.Length;
             return VSConstants.S_OK;
         }
 
@@ -54,8 +51,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         {
             lock (this)
             {
-                var hr = VSConstants.S_OK;
-                celtFetched = (uint)m_data.Length - m_position;
+                int hr = VSConstants.S_OK;
+                celtFetched = (uint) m_data.Length - m_position;
                 if (celt > celtFetched)
                 {
                     hr = VSConstants.S_FALSE;
@@ -66,7 +63,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
                 }
                 if (rgelt != null)
                 {
-                    for (var c = 0; c < celtFetched; c++)
+                    for (int c = 0; c < celtFetched; c++)
                     {
                         rgelt[c] = m_data[m_position + c];
                     }

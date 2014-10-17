@@ -15,7 +15,7 @@ namespace MonoDebugger.SharedLib
 
             var config = new LoggingConfiguration();
 
-            var fileTarget = new FileTarget { FileName = "MonoDebugger.log" };
+            var fileTarget = new FileTarget {FileName = "MonoDebugger.log"};
             config.AddTarget("file", fileTarget);
             config.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, fileTarget));
             var console = new ColoredConsoleTarget();

@@ -1,22 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
+﻿using System.Diagnostics;
 using System.Threading.Tasks;
 using NLog;
 
 namespace MonoDebugger.SharedLib.Server
 {
-    class MonoWebProcess : MonoProcess
+    internal class MonoWebProcess : MonoProcess
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         public string Url { get; private set; }
 
         internal override Process Start(string workingDirectory)
         {
-            var monoBin = MonoUtils.GetMonoXsp4();
-            var args = GetProcessArgs();
+            string monoBin = MonoUtils.GetMonoXsp4();
+            string args = GetProcessArgs();
             ProcessStartInfo procInfo = GetProcessStartInfo(workingDirectory, monoBin);
 
             procInfo.CreateNoWindow = true;
@@ -33,7 +29,7 @@ namespace MonoDebugger.SharedLib.Server
 
                     if (line.StartsWith("Listening on address"))
                     {
-                        var url = line.Substring(line.IndexOf(":") + 2).Trim();
+                        string url = line.Substring(line.IndexOf(":") + 2).Trim();
                         if (url == "0.0.0.0")
                             Url = "localhost";
                         else
@@ -41,7 +37,7 @@ namespace MonoDebugger.SharedLib.Server
                     }
                     else if (line.StartsWith("Listening on port"))
                     {
-                        var port = line.Substring(line.IndexOf(":") + 2).Trim();
+                        string port = line.Substring(line.IndexOf(":") + 2).Trim();
                         port = port.Substring(0, port.IndexOf(" "));
                         Url += ":" + port;
 

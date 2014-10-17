@@ -6,7 +6,6 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     public class MonoProcess : IDebugProcess3
     {
-        public Guid Id { get; private set; }
         private readonly IDebugPort2 _port;
 
         public MonoProcess(IDebugPort2 pPort)
@@ -15,7 +14,10 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             _port = pPort;
         }
 
-        public int Attach(IDebugEventCallback2 pCallback, Guid[] rgguidSpecificEngines, uint celtSpecificEngines, int[] rghrEngineAttach)
+        public Guid Id { get; private set; }
+
+        public int Attach(IDebugEventCallback2 pCallback, Guid[] rgguidSpecificEngines, uint celtSpecificEngines,
+            int[] rghrEngineAttach)
         {
             DebugHelper.TraceEnteringMethod();
             return VSConstants.E_NOTIMPL;
@@ -116,7 +118,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public int GetPhysicalProcessId(AD_PROCESS_ID[] pProcessId)
         {
             DebugHelper.TraceEnteringMethod();
-            pProcessId[0].ProcessIdType = (uint)enum_AD_PROCESS_ID.AD_PROCESS_ID_GUID;
+            pProcessId[0].ProcessIdType = (uint) enum_AD_PROCESS_ID.AD_PROCESS_ID_GUID;
             pProcessId[0].guidProcessId = Id;
             return VSConstants.S_OK;
         }

@@ -1,15 +1,11 @@
 ﻿using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Debugger.Interop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class TrivialMonoExpression : IDebugExpression2
+    internal class TrivialMonoExpression : IDebugExpression2
     {
-        private MonoProperty _monoProperty;
+        private readonly MonoProperty _monoProperty;
 
         public TrivialMonoExpression(MonoProperty monoProperty)
         {
@@ -26,7 +22,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             return VSConstants.E_NOTIMPL;
         }
 
-        public int EvaluateSync(enum_EVALFLAGS dwFlags, uint dwTimeout, IDebugEventCallback2 pExprCallback, out IDebugProperty2 ppResult)
+        public int EvaluateSync(enum_EVALFLAGS dwFlags, uint dwTimeout, IDebugEventCallback2 pExprCallback,
+            out IDebugProperty2 ppResult)
         {
             ppResult = _monoProperty;
             return VSConstants.S_OK;

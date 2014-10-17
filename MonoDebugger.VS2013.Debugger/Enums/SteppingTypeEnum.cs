@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MonoDebugger.VS2013.Debugger.Enums
+﻿namespace MonoDebugger.VS2013.Debugger.Enums
 {
-    enum SteppingTypeEnum
+    internal enum SteppingTypeEnum
     {
         None,
         StepInto,

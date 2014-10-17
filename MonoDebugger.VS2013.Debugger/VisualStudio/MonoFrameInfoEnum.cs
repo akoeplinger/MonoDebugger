@@ -1,12 +1,9 @@
-﻿using Microsoft.VisualStudio.Debugger.Interop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
+using Microsoft.VisualStudio.Debugger.Interop;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class MonoFrameInfoEnum : MonoEnumerator<FRAMEINFO, IEnumDebugFrameInfo2>, IEnumDebugFrameInfo2
+    internal class MonoFrameInfoEnum : MonoEnumerator<FRAMEINFO, IEnumDebugFrameInfo2>, IEnumDebugFrameInfo2
     {
         public MonoFrameInfoEnum(IEnumerable<FRAMEINFO> enumerable) : base(enumerable)
         {

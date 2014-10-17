@@ -6,13 +6,11 @@ using Mono.Debugger.Soft;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class MonoThread : IDebugThread2
+    internal class MonoThread : IDebugThread2
     {
-        public ThreadMirror ThreadMirror { get; private set; }
-
-        private string _threadName = "Mono Thread";
+        private readonly MonoEngine _engine;
         private readonly DebuggedMonoProcess debuggedMonoProcess;
-        private MonoEngine _engine;
+        private string _threadName = "Mono Thread";
 
         public MonoThread(DebuggedMonoProcess debuggedMonoProcess, MonoEngine engine, ThreadMirror threadMirror)
         {
@@ -21,6 +19,8 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             ThreadMirror = threadMirror;
         }
 
+        public ThreadMirror ThreadMirror { get; private set; }
+
         public int CanSetNextStatement(IDebugStackFrame2 pStackFrame, IDebugCodeContext2 pCodeContext)
         {
             return VSConstants.S_FALSE;
@@ -28,8 +28,10 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         public int EnumFrameInfo(enum_FRAMEINFO_FLAGS dwFieldSpec, uint nRadix, out IEnumDebugFrameInfo2 ppEnum)
         {
-            var stackFrames = ThreadMirror.GetFrames();
-            ppEnum = new MonoFrameInfoEnum(stackFrames.Select(x => new MonoStackFrame(this, debuggedMonoProcess, x).GetFrameInfo(dwFieldSpec)));
+            StackFrame[] stackFrames = ThreadMirror.GetFrames();
+            ppEnum =
+                new MonoFrameInfoEnum(
+                    stackFrames.Select(x => new MonoStackFrame(this, debuggedMonoProcess, x).GetFrameInfo(dwFieldSpec)));
             return VSConstants.S_OK;
         }
 

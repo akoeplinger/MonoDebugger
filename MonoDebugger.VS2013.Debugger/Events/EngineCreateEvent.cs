@@ -1,17 +1,12 @@
 ﻿using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Debugger.Interop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MonoDebugger.VS2013.Debugger.Events
 {
-    sealed class EngineCreateEvent : AsynchronousEvent, IDebugEngineCreateEvent2
+    internal sealed class EngineCreateEvent : AsynchronousEvent, IDebugEngineCreateEvent2
     {
         public const string IID = "FE5B734C-759D-4E59-AB04-F103343BDD06";
-        private IDebugEngine2 m_engine;
+        private readonly IDebugEngine2 m_engine;
 
         public EngineCreateEvent(IDebugEngine2 engine)
         {
