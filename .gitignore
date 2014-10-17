@@ -11,3 +11,5 @@
 /MonoDebugger.MonoServer/obj/Debug
 /MonoDebugger.VS2013.Debugger/obj/Debug
 /MonoDebugger.VS2013/obj/Debug
+/MonoDebugger.Contracts/obj/Debug
+/MonoDebugger.Contracts/bin/Debug

@@ -7,24 +7,55 @@ using Mono.Debugger.Soft;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
+    internal class ExpandedProperty
+    {
+        private readonly StackFrame frame;
+        private readonly LocalVariable localVariable;
+        private readonly List<Mirror> allProperties;
+
+        public ExpandedProperty(TypeMirror typeMirror, StackFrame frame, LocalVariable localVariable)
+        {
+            this.frame = frame;
+            this.localVariable = localVariable;
+            var properties = typeMirror.GetProperties().Cast<Mirror>();
+            var methods = typeMirror.GetMethods().Cast<Mirror>();
+            var fields = typeMirror.GetFields().Cast<Mirror>();
+            var children = properties.Concat(methods).Concat(fields);
+            allProperties = children.ToList();
+        }
+    }
+
     internal class MonoProperty : IDebugProperty2
     {
-        private readonly StackFrame _frame;
-        private readonly LocalVariable[] _values;
+        private readonly StackFrame frame;
+        private readonly LocalVariable variable;
+        private readonly TypeMirror mirror;
+        private readonly Mirror childMirror;
 
-        public MonoProperty(StackFrame frame, IEnumerable<LocalVariable> values)
+        public MonoProperty(StackFrame frame, LocalVariable variable)
+            : this(frame, variable, null, null)
         {
-            _frame = frame;
-            _values = values.ToArray();
+        }
+
+        public MonoProperty(StackFrame frame, LocalVariable localVariable, TypeMirror typeMirror, Mirror childMirror)
+        {
+            this.frame = frame;
+            this.variable = localVariable;
+            this.mirror = typeMirror;
+            this.childMirror = childMirror;
         }
 
         public int EnumChildren(enum_DEBUGPROP_INFO_FLAGS dwFields, uint dwRadix, ref Guid guidFilter,
             enum_DBG_ATTRIB_FLAGS dwAttribFilter, string pszNameFilter, uint dwTimeout,
             out IEnumDebugPropertyInfo2 ppEnum)
         {
-            IEnumerable<DEBUG_PROPERTY_INFO> properties =
-                _values.Where(x => !string.IsNullOrEmpty(x.Name)).Select(x => GetDebugPropertyInfo(x, dwFields));
-            ppEnum = new MonoPropertyInfosEnum(properties);
+            var typeMirror = variable.Type;
+            var properties = typeMirror.GetProperties().Cast<Mirror>();
+            var methods = typeMirror.GetMethods();
+            var fields = typeMirror.GetFields();
+            var children = properties.Concat(methods).Concat(fields).ToList();
+
+            ppEnum = new MonoPropertyInfosEnum(children.Select(x => new MonoProperty(frame, variable, typeMirror, x).GetDebugPropertyInfo(dwFields)));
             return VSConstants.S_OK;
         }
 
@@ -57,10 +88,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             IDebugReference2[] rgpArgs, uint dwArgCount, DEBUG_PROPERTY_INFO[] pPropertyInfo)
         {
             rgpArgs = null;
-            if (_values.Length != 1)
-                return VSConstants.E_NOTIMPL;
-
-            pPropertyInfo[0] = GetDebugPropertyInfo(_values[0], dwFields);
+            pPropertyInfo[0] = GetDebugPropertyInfo(dwFields);
             return VSConstants.S_OK;
         }
 
@@ -85,42 +113,48 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             throw new NotImplementedException();
         }
 
-        internal DEBUG_PROPERTY_INFO GetDebugPropertyInfo(LocalVariable variable, enum_DEBUGPROP_INFO_FLAGS dwFields)
+        internal DEBUG_PROPERTY_INFO GetDebugPropertyInfo(enum_DEBUGPROP_INFO_FLAGS dwFields)
         {
             var propertyInfo = new DEBUG_PROPERTY_INFO();
-
+            var info = GetMirrorInfo();
             if ((dwFields & enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_FULLNAME) != 0)
             {
-                propertyInfo.bstrFullName = variable.Name;
+                propertyInfo.bstrFullName = info != null ? info.Name : variable.Name;
                 propertyInfo.dwFields |= enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_FULLNAME;
             }
 
             if ((dwFields & enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_NAME) != 0)
             {
-                propertyInfo.bstrName = variable.Name;
+                propertyInfo.bstrName = info != null ? info.Name : variable.Name;
                 propertyInfo.dwFields |= enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_NAME;
             }
 
             if ((dwFields & enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_TYPE) != 0)
             {
-                propertyInfo.bstrType = variable.Type.Namespace + "." + variable.Type.Name;
+                if (info != null)
+                {
+                    if (info.PropertyType != null)
+                        propertyInfo.bstrType = info.PropertyType.FullName;
+                }
+                else
+                    propertyInfo.bstrType = variable.Type.Namespace + "." + variable.Type.Name;
                 propertyInfo.dwFields |= enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_TYPE;
             }
 
-            if ((dwFields & enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE) != 0)
+            if ((dwFields & enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE) != 0 && info == null)
             {
-                Value value = _frame.GetValue(variable);
+                Value value = frame.GetValue(variable);
                 if (value is ObjectMirror)
                 {
-                    var obj = ((ObjectMirror) value);
+                    var obj = ((ObjectMirror)value);
                     MethodMirror toStringMethod = obj.Type.GetMethod("ToString");
-                    value = obj.InvokeMethod(_frame.Thread, toStringMethod, Enumerable.Empty<Value>().ToList(),
+                    value = obj.InvokeMethod(frame.Thread, toStringMethod, Enumerable.Empty<Value>().ToList(),
                         InvokeOptions.DisableBreakpoints);
-                    propertyInfo.bstrValue = ((StringMirror) value).Value;
+                    propertyInfo.bstrValue = ((StringMirror)value).Value;
                 }
                 else if (value is PrimitiveValue)
                 {
-                    var obj = ((PrimitiveValue) value);
+                    var obj = ((PrimitiveValue)value);
                     if (obj.Value != null)
                         propertyInfo.bstrValue = obj.Value.ToString();
                 }
@@ -132,14 +166,14 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             {
                 propertyInfo.dwAttrib = enum_DBG_ATTRIB_FLAGS.DBG_ATTRIB_VALUE_READONLY;
 
-                if (IsExpandable(variable))
+                if (IsExpandable())
                 {
                     propertyInfo.dwAttrib |= enum_DBG_ATTRIB_FLAGS.DBG_ATTRIB_OBJ_IS_EXPANDABLE;
                 }
                 propertyInfo.dwFields |= enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_ATTRIB;
             }
 
-            if (((dwFields & enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_PROP) != 0) || IsExpandable(variable))
+            if (((dwFields & enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_PROP) != 0) || IsExpandable())
             {
                 propertyInfo.pProperty = this;
                 propertyInfo.dwFields |= enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_PROP;
@@ -148,9 +182,48 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             return propertyInfo;
         }
 
-        private bool IsExpandable(LocalVariable variable)
+        private PropertyChildInfo GetMirrorInfo()
+        {
+            PropertyChildInfo childInfo = null;
+            var methodMirror = childMirror as MethodMirror;
+            var propertyMirror = childMirror as PropertyInfoMirror;
+            var fieldMirror = childMirror as FieldInfoMirror;
+            //if (methodMirror != null)
+            //{
+            //    childInfo = new PropertyChildInfo();
+            //    childInfo.Name = methodMirror.Name;
+            //    childInfo.FullName = methodMirror.FullName;
+            //}
+            //else
+
+            if (propertyMirror != null)
+            {
+                childInfo = new PropertyChildInfo();
+                childInfo.Name = propertyMirror.Name;
+                childInfo.FullName = propertyMirror.PropertyType.FullName;
+                childInfo.PropertyType = propertyMirror.PropertyType;
+            }
+            else if (fieldMirror != null)
+            {
+                childInfo = new PropertyChildInfo();
+                childInfo.Name = fieldMirror.Name;
+                childInfo.FullName = fieldMirror.FieldType.FullName;
+                childInfo.PropertyType = fieldMirror.FieldType;
+            }
+
+            return childInfo;
+        }
+
+        private bool IsExpandable()
         {
             return true;
         }
+    }
+
+    internal class PropertyChildInfo
+    {
+        public string FullName { get; set; }
+        public string Name { get; set; }
+        public TypeMirror PropertyType { get; set; }
     }
 }

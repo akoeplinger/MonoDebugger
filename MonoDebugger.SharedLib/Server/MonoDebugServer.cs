@@ -46,8 +46,11 @@ namespace MonoDebugger.SharedLib.Server
         public void Stop()
         {
             cts.Cancel();
-            if (tcp.Server != null)
+            if (tcp != null && tcp.Server != null)
+            {
                 tcp.Server.Close(0);
+                tcp = null;
+            }
 
             Task.WaitAll(listeningTask);
             logger.Info("Closed MonoDebugServer");

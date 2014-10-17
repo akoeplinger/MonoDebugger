@@ -9,23 +9,24 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
     internal class MonoStackFrame : IDebugStackFrame2, IDebugExpressionContext2
     {
-        private readonly MonoDocumentContext _docContext;
-        private readonly StackFrame _frame;
-        private readonly MonoProperty _locals;
-        private readonly MonoThread _thread;
+        private readonly MonoDocumentContext docContext;
+        private readonly StackFrame frame;
+        private readonly List<MonoProperty> locals;
+        private readonly MonoThread thread;
         private readonly DebuggedMonoProcess debuggedMonoProcess;
 
         public MonoStackFrame(MonoThread thread, DebuggedMonoProcess debuggedMonoProcess, StackFrame frame)
         {
-            _thread = thread;
+            this.thread = thread;
             this.debuggedMonoProcess = debuggedMonoProcess;
-            _frame = frame;
-
-            _docContext = new MonoDocumentContext(_frame.FileName,
-                _frame.LineNumber,
-                _frame.ColumnNumber);
-            List<LocalVariable> locals = frame.GetVisibleVariables().ToList();
-            _locals = new MonoProperty(frame, locals);
+            this.frame = frame;
+            
+            docContext = new MonoDocumentContext(this.frame.FileName,
+                this.frame.LineNumber,
+                this.frame.ColumnNumber);
+            var locals = frame.GetVisibleVariables().ToList();
+            
+            this.locals = locals.Select(x => new MonoProperty(frame, x)).ToList();
         }
 
         public int ParseText(string pszCode, enum_PARSEFLAGS dwFlags, uint nRadix, out IDebugExpression2 ppExpr,
@@ -37,10 +38,10 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             string lookup = pszCode;
 
 
-            LocalVariable result = _frame.GetVisibleVariableByName(lookup);
+            LocalVariable result = frame.GetVisibleVariableByName(lookup);
             if (result != null)
             {
-                ppExpr = new TrivialMonoExpression(new MonoProperty(_frame, new[] {result}));
+                ppExpr = new TrivialMonoExpression(new MonoProperty(frame, result));
                 return VSConstants.S_OK;
             }
 
@@ -52,17 +53,14 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public int EnumProperties(enum_DEBUGPROP_INFO_FLAGS dwFields, uint nRadix, ref Guid guidFilter, uint dwTimeout,
             out uint pcelt, out IEnumDebugPropertyInfo2 ppEnum)
         {
-            int res = _locals.EnumChildren(dwFields, nRadix, ref guidFilter, 0, null, dwTimeout, out ppEnum);
-            if (ppEnum != null)
-                ppEnum.GetCount(out pcelt);
-            else
-                pcelt = 0;
-            return res;
+            ppEnum = new MonoPropertyInfosEnum(locals.Select(x => x.GetDebugPropertyInfo(dwFields)));
+            ppEnum.GetCount(out pcelt);
+            return VSConstants.S_OK;
         }
 
         public int GetCodeContext(out IDebugCodeContext2 ppCodeCxt)
         {
-            ppCodeCxt = _docContext;
+            ppCodeCxt = docContext;
             return VSConstants.S_OK;
         }
 
@@ -74,7 +72,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         public int GetDocumentContext(out IDebugDocumentContext2 ppCxt)
         {
-            ppCxt = _docContext;
+            ppCxt = docContext;
             return VSConstants.S_OK;
         }
 
@@ -99,7 +97,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         public int GetName(out string pbstrName)
         {
-            pbstrName = _frame.FileName;
+            pbstrName = frame.FileName;
             return VSConstants.S_OK;
         }
 
@@ -112,15 +110,15 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         public int GetThread(out IDebugThread2 ppThread)
         {
-            ppThread = _thread;
+            ppThread = thread;
             return VSConstants.S_OK;
         }
 
         internal FRAMEINFO GetFrameInfo(enum_FRAMEINFO_FLAGS dwFieldSpec)
         {
             var frameInfo = new FRAMEINFO();
-            frameInfo.m_bstrFuncName = _frame.Location.Method.Name;
-            frameInfo.m_bstrModule = _frame.FileName;
+            frameInfo.m_bstrFuncName = frame.Location.Method.Name;
+            frameInfo.m_bstrModule = frame.FileName;
             frameInfo.m_pFrame = this;
             frameInfo.m_fHasDebugInfo = 1;
             frameInfo.m_fStaleCode = 0;
