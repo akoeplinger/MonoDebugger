@@ -1,46 +1,46 @@
-﻿using MonoDebugger.SharedLib;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using MonoDebugger.Contracts;
+using MonoDebugger.SharedLib;
 
 namespace MonoDebugger.VS2013.MonoClient
 {
-    public class DebugSession
+    public class DebugSession : IDebugSession
     {
-        public DebugClient Client { get; private set; }
-        private TcpCommunication _communication;
-        private ApplicationType _type;
+        private readonly TcpCommunication communication;
+        private readonly ApplicationType type;
 
         public DebugSession(DebugClient debugClient, ApplicationType type, Socket socket)
         {
             Client = debugClient;
-            _type = type;
-            _communication = new TcpCommunication(socket);
+            this.type = type;
+            communication = new TcpCommunication(socket);
+        }
+
+        public DebugClient Client { get; private set; }
+
+        public void Disconnect()
+        {
+            communication.Disconnect();
         }
 
         public void TransferFiles()
         {
-            DirectoryInfo info = new DirectoryInfo(Client.OutputDirectory);
+            var info = new DirectoryInfo(Client.OutputDirectory);
             if (!info.Exists)
                 throw new DirectoryNotFoundException("Directory not found");
 
-            var targetZip = Path.Combine(info.FullName, "DebugContent.zip");
+            string targetZip = Path.Combine(info.FullName, "DebugContent.zip");
             if (File.Exists(targetZip))
                 File.Delete(targetZip);
 
             ZipFile.CreateFromDirectory(info.FullName, targetZip);
 
-            _communication.Send(Command.DebugContent, new StartDebuggingMessage
+            communication.Send(Command.DebugContent, new StartDebuggingMessage
             {
-                AppType = _type,
+                AppType = type,
                 DebugContent = File.ReadAllBytes(targetZip),
                 FileName = Client.TargetExe
             });
@@ -56,9 +56,9 @@ namespace MonoDebugger.VS2013.MonoClient
 
         public async Task WaitForAnswerAsync()
         {
-            var delay = Task.Delay(8000);
-            var msg = await Task.WhenAny(_communication.ReceiveAsync(), delay);
-            
+            Task delay = Task.Delay(8000);
+            Task msg = await Task.WhenAny(communication.ReceiveAsync(), delay);
+
             if (msg is Task<MessageBase>)
                 return;
 

@@ -64,5 +64,14 @@ namespace MonoDebugger.SharedLib
         {
             return Task.Factory.StartNew(() => Receive());
         }
+
+        public void Disconnect()
+        {
+            if (_socket != null)
+            {
+                _socket.Close(1);
+                _socket.Dispose();
+            }
+        }
     }
 }

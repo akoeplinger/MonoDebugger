@@ -2,7 +2,9 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using MonoDebugger.VS2013.MonoClient;
+using MonoDebugger.VS2013.Settings;
 
 namespace MonoDebugger.VS2013.Views
 {
@@ -11,21 +13,25 @@ namespace MonoDebugger.VS2013.Views
         public ObservableCollection<MonoServerInformation> Servers { get; set; }
         public MonoServerInformation SelectedServer { get; set; }
         public string ManualIp { get; set; }
-        private volatile bool _lookupServers;
+        private CancellationTokenSource cts = new CancellationTokenSource();
+        private readonly UserSettingsManager userSettingsManager = new UserSettingsManager();
 
         public ServersFoundViewModel()
         {
             Servers = new ObservableCollection<MonoServerInformation>();
-            LookupServers();
+            var settings = userSettingsManager.Load();
+            ManualIp = settings.LastIp;
+            LookupServers(cts.Token);
         }
 
-        private async void LookupServers()
+        private async void LookupServers(CancellationToken token)
         {
             var discovery = new MonoServerDiscovery();
-            _lookupServers = true;
-            while (_lookupServers)
+
+            while (!token.IsCancellationRequested)
             {
-                var server = await discovery.SearchServer();
+                token.ThrowIfCancellationRequested();
+                var server = await discovery.SearchServer(token);
                 if (server != null)
                 {
                     var exists = Servers.FirstOrDefault(x => IPAddress.Equals(x.IpAddress, server.IpAddress));
@@ -47,7 +53,11 @@ namespace MonoDebugger.VS2013.Views
 
         public void StopLooking()
         {
-            _lookupServers = false;
+            var settings = userSettingsManager.Load();
+            settings.LastIp = ManualIp;
+            userSettingsManager.Save(settings);
+
+            cts.Cancel();
         }
     }
 }

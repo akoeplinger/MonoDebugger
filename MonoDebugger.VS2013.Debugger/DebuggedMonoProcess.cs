@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Debugger.Interop;
 using Mono.Debugger.Soft;
+using MonoDebugger.Contracts;
 using MonoDebugger.VS2013.Debugger.VisualStudio;
 using NLog;
 
@@ -23,15 +24,25 @@ namespace MonoDebugger.VS2013.Debugger
         private VirtualMachine _vm;
 
 
+        private StepEventRequest currentStepRequest;
+        private bool isStepping;
+        private IDebugSession session;
+
         public DebuggedMonoProcess(MonoEngine engine, IPAddress ipAddress)
         {
             _engine = engine;
             _ipAddress = ipAddress;
+            Instance = this;
+        }
+
+        public static DebuggedMonoProcess Instance { get; private set; }
+
+        public IReadOnlyDictionary<string, TypeSummary> KnownTypes
+        {
+            get { return _types; }
         }
 
         public event EventHandler ApplicationClosed;
-        private StepEventRequest currentStepRequest;
-        private bool isStepping;
 
         internal void StartDebugging()
         {
@@ -52,7 +63,7 @@ namespace MonoDebugger.VS2013.Debugger
             EventSet set = _vm.GetNextEventSet();
             if (set.Events.OfType<VMStartEvent>().Any())
             {
-                _mainThread = new MonoThread(_engine, set.Events[0].Thread);
+                _mainThread = new MonoThread(this, _engine, set.Events[0].Thread);
                 _engine.Events.ThreadStarted(_mainThread);
 
                 Task.Factory.StartNew(ReceiveThread, TaskCreationOptions.LongRunning);
@@ -85,8 +96,6 @@ namespace MonoDebugger.VS2013.Debugger
 
                     if (resume && _vm != null)
                         _vm.Resume();
-
-                    
                 }
                 catch (VMNotSuspendedException)
                 {
@@ -235,9 +244,12 @@ namespace MonoDebugger.VS2013.Debugger
             {
                 if (_vm != null)
                 {
-                    _vm.Detach();
+                    _vm.ForceDisconnect();
                     _vm = null;
                 }
+
+
+                session.Disconnect();
             }
             catch
             {
@@ -256,7 +268,7 @@ namespace MonoDebugger.VS2013.Debugger
         {
             if (isStepping)
                 return;
-            
+
             if (currentStepRequest == null)
                 currentStepRequest = _vm.CreateStepRequest(thread.ThreadMirror);
             else
@@ -279,10 +291,15 @@ namespace MonoDebugger.VS2013.Debugger
                 default:
                     return;
             }
-            
+
             currentStepRequest.Size = StepSize.Line;
             currentStepRequest.Enable();
             _vm.Resume();
+        }
+
+        public void AssociateDebugSession(IDebugSession session)
+        {
+            this.session = session;
         }
     }
 }

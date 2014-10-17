@@ -14,10 +14,12 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         private MonoDocumentContext _docContext;
         private MonoProperty _locals;
         private MonoThread _thread;
+        private readonly DebuggedMonoProcess debuggedMonoProcess;
 
-        public MonoStackFrame(MonoThread thread, StackFrame frame)
+        public MonoStackFrame(MonoThread thread, DebuggedMonoProcess debuggedMonoProcess, StackFrame frame)
         {
             _thread = thread;
+            this.debuggedMonoProcess = debuggedMonoProcess;
             _frame = frame;
 
             _docContext = new MonoDocumentContext(_frame.FileName,
@@ -115,13 +117,15 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
             pichError = 0;
             ppExpr = null;
             var lookup = pszCode;
+            
+            
 
             var result = _frame.GetVisibleVariableByName(lookup);
             if (result != null)
             {
                 ppExpr = new TrivialMonoExpression(new MonoProperty(_frame, new[] { result }));
                 return VSConstants.S_OK;
-            }
+            } 
 
             pbstrError = "Unsupported Expression";
             pichError = (uint)pbstrError.Length;

@@ -1,4 +1,8 @@
-﻿using EnvDTE;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -6,52 +10,45 @@ using MonoDebugger.SharedLib;
 using MonoDebugger.VS2013.Debugger;
 using MonoDebugger.VS2013.Debugger.VisualStudio;
 using MonoDebugger.VS2013.MonoClient;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security;
-using System.Security.Principal;
-using System.Text;
-using System.Windows.Forms;
+using IServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
+using Task = System.Threading.Tasks.Task;
 
 namespace MonoDebugger.VS2013
 {
-    class MonoVisualStudioExtension
+    internal class MonoVisualStudioExtension
     {
-        private DTE _dte;
+        private readonly DTE _dte;
 
-        public MonoVisualStudioExtension(EnvDTE.DTE dTE)
+        public MonoVisualStudioExtension(DTE dTE)
         {
             _dte = dTE;
         }
 
         internal void BuildSolution()
         {
-            var sb = (SolutionBuild2)_dte.Solution.SolutionBuild;
+            var sb = (SolutionBuild2) _dte.Solution.SolutionBuild;
             sb.Build(true);
         }
 
         internal string GetStartupAssemblyPath()
         {
-            var startupProject = GetStartupProject();
+            Project startupProject = GetStartupProject();
             return GetAssemblyPath(startupProject);
         }
 
         private Project GetStartupProject()
         {
-            var sb = (SolutionBuild2)_dte.Solution.SolutionBuild;
-            var project = ((Array)sb.StartupProjects).Cast<string>().First();
-            var startupProject = _dte.Solution.Item(project);
+            var sb = (SolutionBuild2) _dte.Solution.SolutionBuild;
+            string project = ((Array) sb.StartupProjects).Cast<string>().First();
+            Project startupProject = _dte.Solution.Item(project);
             return startupProject;
         }
 
         internal string GetAssemblyPath(Project vsProject)
         {
             string fullPath = vsProject.Properties.Item("FullPath").Value.ToString();
-            string outputPath = vsProject.ConfigurationManager.ActiveConfiguration.Properties.Item("OutputPath").Value.ToString();
+            string outputPath =
+                vsProject.ConfigurationManager.ActiveConfiguration.Properties.Item("OutputPath").Value.ToString();
             string outputDir = Path.Combine(fullPath, outputPath);
             string outputFileName = vsProject.Properties.Item("OutputFileName").Value.ToString();
             string assemblyPath = Path.Combine(outputDir, outputFileName);
@@ -59,36 +56,38 @@ namespace MonoDebugger.VS2013
         }
 
 
-        internal async System.Threading.Tasks.Task AttachDebugger(string ipAddress)
+        internal async Task AttachDebugger(string ipAddress)
         {
-            var path = GetStartupAssemblyPath();
-            var targetExe = Path.GetFileName(path);
-            var outputDirectory = Path.GetDirectoryName(path);
+            string path = GetStartupAssemblyPath();
+            string targetExe = Path.GetFileName(path);
+            string outputDirectory = Path.GetDirectoryName(path);
 
-            var startup = GetStartupProject();
+            Project startup = GetStartupProject();
 
-            bool isWeb = ((object[])startup.ExtenderNames).Any(x => x.ToString() == "WebApplication");
-            var appType = isWeb ? ApplicationType.Webapplication : ApplicationType.Desktopapplication;
+            bool isWeb = ((object[]) startup.ExtenderNames).Any(x => x.ToString() == "WebApplication");
+            ApplicationType appType = isWeb ? ApplicationType.Webapplication : ApplicationType.Desktopapplication;
             if (appType == ApplicationType.Webapplication)
                 outputDirectory += @"\..\..\";
 
             var client = new DebugClient(appType, targetExe, outputDirectory);
-            var session = await client.ConnectToServerAsync(ipAddress);
+            DebugSession session = await client.ConnectToServerAsync(ipAddress);
             await session.TransferFilesAsync();
             await session.WaitForAnswerAsync();
 
-            var pInfo = GetDebugInfo(ipAddress, targetExe, outputDirectory);
-            var sp = new ServiceProvider((Microsoft.VisualStudio.OLE.Interop.IServiceProvider)_dte);
+            IntPtr pInfo = GetDebugInfo(ipAddress, targetExe, outputDirectory);
+            var sp = new ServiceProvider((IServiceProvider) _dte);
             try
             {
-                IVsDebugger dbg = (IVsDebugger)sp.GetService(typeof(SVsShellDebugger));
+                var dbg = (IVsDebugger) sp.GetService(typeof (SVsShellDebugger));
                 int hr = dbg.LaunchDebugTargets(1, pInfo);
                 Marshal.ThrowExceptionForHR(hr);
+
+                DebuggedMonoProcess.Instance.AssociateDebugSession(session);
             }
             catch
             {
                 string msg;
-                IVsUIShell sh = (IVsUIShell)sp.GetService(typeof(SVsUIShell));
+                var sh = (IVsUIShell) sp.GetService(typeof (SVsUIShell));
                 sh.GetErrorInfo(out msg);
                 throw;
             }
@@ -101,20 +100,20 @@ namespace MonoDebugger.VS2013
 
         private IntPtr GetDebugInfo(string args, string targetExe, string outputDirectory)
         {
-            VsDebugTargetInfo info = new VsDebugTargetInfo();
-            info.cbSize = (uint)Marshal.SizeOf(info);
+            var info = new VsDebugTargetInfo();
+            info.cbSize = (uint) Marshal.SizeOf(info);
             info.dlo = DEBUG_LAUNCH_OPERATION.DLO_CreateProcess;
 
             info.bstrExe = Path.Combine(outputDirectory, targetExe);
             info.bstrCurDir = outputDirectory;
             info.bstrArg = args; // no command line parameters
             info.bstrRemoteMachine = null; // debug locally
-            info.grfLaunch = (uint)__VSDBGLAUNCHFLAGS.DBGLAUNCH_StopDebuggingOnEnd;
+            info.grfLaunch = (uint) __VSDBGLAUNCHFLAGS.DBGLAUNCH_StopDebuggingOnEnd;
             info.fSendStdoutToOutputWindow = 0;
             info.clsidCustom = MonoGuids.EngineGuid;
             info.grfLaunch = 0;
 
-            IntPtr pInfo = Marshal.AllocCoTaskMem((int)info.cbSize);
+            IntPtr pInfo = Marshal.AllocCoTaskMem((int) info.cbSize);
             Marshal.StructureToPtr(info, pInfo, false);
             return pInfo;
         }

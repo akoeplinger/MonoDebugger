@@ -1,94 +1,88 @@
-﻿using MonoDebugger.SharedLib;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using NLog;
 
 namespace MonoDebugger.SharedLib.Server
 {
-    class ClientSession
+    internal class ClientSession
     {
-        private string ZipFileName { get { return _directoryName + ".zip"; } }
-
-        private string _root = Path.Combine(Path.GetTempPath(), "MonoDebugger");
-        private string _directoryName;
-        private string _targetExe;
-        private Process _proc;
-        private TcpCommunication _communication;
-        private IPAddress _remoteEndpoint;
+        private readonly TcpCommunication communication;
+        private readonly string directoryName;
+        private readonly IPAddress remoteEndpoint;
+        private readonly string root = Path.Combine(Path.GetTempPath(), "MonoDebugger");
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private Process proc;
+        private string targetExe;
 
         public ClientSession(Socket socket)
         {
-            _directoryName = Path.Combine(_root, Path.GetRandomFileName());
-            _remoteEndpoint = ((IPEndPoint)socket.RemoteEndPoint).Address;
-            _communication = new TcpCommunication(socket);
+            directoryName = Path.Combine(root, Path.GetRandomFileName());
+            remoteEndpoint = ((IPEndPoint) socket.RemoteEndPoint).Address;
+            communication = new TcpCommunication(socket);
 
-            if(!Directory.Exists("MonoDebugger"))
+            if (!Directory.Exists("MonoDebugger"))
                 Directory.CreateDirectory("MonoDebugger");
+        }
+
+        private string ZipFileName
+        {
+            get { return directoryName + ".zip"; }
         }
 
         public void HandleSession()
         {
             try
             {
-                logger.Trace(string.Format("New Session from {0}", _remoteEndpoint));
+                logger.Trace("New Session from {0}", remoteEndpoint);
 
-                while (_communication.IsConnected)
+                while (communication.IsConnected)
                 {
-                    if (_proc != null && _proc.HasExited)
+                    if (proc != null && proc.HasExited)
                         return;
 
-                    MessageBase msg = _communication.Receive();
+                    MessageBase msg = communication.Receive();
 
                     switch (msg.Command)
                     {
                         case Command.DebugContent:
-                            StartDebugging((StartDebuggingMessage)msg.Payload);
-                            _communication.Send(Command.StartedMono, new StatusMessage { });
+                            StartDebugging((StartDebuggingMessage) msg.Payload);
+                            communication.Send(Command.StartedMono, new StatusMessage());
                             break;
                     }
                 }
             }
-            catch (SocketException)
-            {
-                if (_proc != null && !_proc.HasExited)
-                    _proc.Kill();
-            }
             catch (Exception ex)
             {
-                logger.Trace(ex);
+                logger.Error(ex);
+                if (proc != null && !proc.HasExited)
+                    proc.Kill();
             }
         }
 
         private void StartDebugging(StartDebuggingMessage msg)
         {
-            if (!Directory.Exists(_root))
-                Directory.CreateDirectory(_root);
+            if (!Directory.Exists(root))
+                Directory.CreateDirectory(root);
 
-            _targetExe = msg.FileName;
+            targetExe = msg.FileName;
 
-            logger.Trace(string.Format("Receiving content from {0}", _remoteEndpoint));
+            logger.Trace("Receiving content from {0}", remoteEndpoint);
             File.WriteAllBytes(ZipFileName, msg.DebugContent);
-            ZipFile.ExtractToDirectory(ZipFileName, _directoryName);
+            ZipFile.ExtractToDirectory(ZipFileName, directoryName);
 
-            foreach (var file in Directory.GetFiles(_directoryName, "*vshost*"))
+            foreach (string file in Directory.GetFiles(directoryName, "*vshost*"))
                 File.Delete(file);
 
             File.Delete(ZipFileName);
-            logger.Trace(string.Format("Extracted content from {0} to {1}", _remoteEndpoint, _directoryName));
+            logger.Trace("Extracted content from {0} to {1}", remoteEndpoint, directoryName);
 
             var generator = new Pdb2MdbGenerator();
-            var binaryDirectory = msg.AppType == ApplicationType.Desktopapplication ? _directoryName : Path.Combine(_directoryName, "bin");
+            string binaryDirectory = msg.AppType == ApplicationType.Desktopapplication
+                ? directoryName
+                : Path.Combine(directoryName, "bin");
             generator.GeneratePdb2Mdb(binaryDirectory);
 
             StartMono(msg.AppType);
@@ -96,11 +90,11 @@ namespace MonoDebugger.SharedLib.Server
 
         private void StartMono(ApplicationType type)
         {
-            MonoProcess proc = MonoProcess.Start(type, _targetExe);
+            MonoProcess proc = MonoProcess.Start(type, targetExe);
             proc.ProcessStarted += MonoProcessStarted;
-            _proc = proc.Start(_directoryName);
-            _proc.EnableRaisingEvents = true;
-            _proc.Exited += _proc_Exited;
+            this.proc = proc.Start(directoryName);
+            this.proc.EnableRaisingEvents = true;
+            this.proc.Exited += _proc_Exited;
         }
 
         private void MonoProcessStarted(object sender, EventArgs e)
@@ -112,16 +106,16 @@ namespace MonoDebugger.SharedLib.Server
             }
         }
 
-        void _proc_Exited(object sender, EventArgs e)
+        private void _proc_Exited(object sender, EventArgs e)
         {
-            Console.WriteLine("Program closed: " + _proc.ExitCode);
+            Console.WriteLine("Program closed: " + proc.ExitCode);
             try
             {
-                Directory.Delete(_directoryName, true);
+                Directory.Delete(directoryName, true);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                logger.Trace(string.Format("Cant delete {0} - {1}", _directoryName, ex.Message));
+                logger.Trace("Cant delete {0} - {1}", directoryName, ex.Message);
             }
         }
     }

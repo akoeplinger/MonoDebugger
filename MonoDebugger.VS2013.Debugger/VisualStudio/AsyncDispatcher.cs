@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MonoDebugger.VS2013.Debugger.VisualStudio
 {
-    class AsyncDispatcher
+    internal class AsyncDispatcher
     {
-        private readonly ConcurrentQueue<Action> _actions = new ConcurrentQueue<Action>();
-        private AutoResetEvent _wait = new AutoResetEvent(false);
-        private volatile bool _running = true;
+        private readonly BlockingCollection<Action> actions = new BlockingCollection<Action>();
+        private readonly CancellationTokenSource cts = new CancellationTokenSource();
 
         public AsyncDispatcher()
         {
@@ -21,36 +17,20 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
 
         private void Run()
         {
-            while (_running)
+            foreach (Action action in actions.GetConsumingEnumerable(cts.Token))
             {
-                _wait.WaitOne();
-
-                lock (_wait)
-                {
-                    Action action;
-                    if (_actions.TryDequeue(out action))
-                    {
-                        action();
-                    }
-                    else
-                        _wait.Reset();
-                }
+                action();
             }
         }
 
         public void Queue(Action action)
         {
-            lock (_wait)
-            {
-                _actions.Enqueue(action);
-                _wait.Set();
-            }
+            actions.Add(action);
         }
 
         internal void Stop()
         {
-            _running = false;
-            _wait.Set();
+            cts.Cancel();
         }
     }
 }

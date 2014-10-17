@@ -6,7 +6,7 @@ using System.Text;
 
 namespace MonoDebugger.VS2013.Debugger
 {
-    class TypeSummary
+    public class TypeSummary
     {
         private MethodMirror[] _methods;
 

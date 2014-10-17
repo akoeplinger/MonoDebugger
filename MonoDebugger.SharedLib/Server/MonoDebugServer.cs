@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -13,87 +8,87 @@ using NLog;
 
 namespace MonoDebugger.SharedLib.Server
 {
-    public class MonoDebugServer
+    public class MonoDebugServer : IDisposable
     {
         public const int TcpPort = 13001;
-        public bool IsRunning { get { return _isRunning; } }
-
-        private volatile bool _isRunning;
-        private Task _announceTask;
-        private TcpListener _tcp;
-        private Task _listeningTask;
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly CancellationTokenSource cts = new CancellationTokenSource();
+
+        private TcpListener tcp;
+        private Task listeningTask;
 
         public void Start()
         {
-            StartAsync().Wait();
+            tcp = new TcpListener(IPAddress.Any, TcpPort);
+            tcp.Start();
+            listeningTask = Task.Factory.StartNew(() => StartListening(cts.Token), cts.Token);
         }
 
-        public Task StartAsync()
+        private void StartListening(CancellationToken token)
         {
-            InitTcp();
-            _listeningTask = Task.Factory.StartNew(StartListening);
-            return _listeningTask;
-        }
-
-        private void InitTcp()
-        {
-            _tcp = new TcpListener(IPAddress.Any, TcpPort);
-            _tcp.Start();
-            _isRunning = true;
-        }
-
-        private void StartListening()
-        {
-            while (_isRunning)
+            while (true)
             {
-                var client = _tcp.AcceptTcpClient();
+                logger.Info("Waiting for client");
+                TcpClient client = tcp.AcceptTcpClient();
+                token.ThrowIfCancellationRequested();
+
+                logger.Info("Accepted client: " + client.Client.RemoteEndPoint);
                 var clientSession = new ClientSession(client.Client);
-                Task.Factory.StartNew(clientSession.HandleSession);
+                Task.Factory.StartNew(clientSession.HandleSession, token);
             }
         }
 
         public void Stop()
         {
-            try
-            {
-                _tcp.Server.Close(0);
-                _isRunning = false;
-                Task.WaitAll(_listeningTask);
-            }
-            catch
-            {
-                
-            }
+            cts.Cancel();
+            if (tcp.Server != null)
+                tcp.Server.Close(0);
+
+            Task.WaitAll(listeningTask);
+            logger.Info("Closed MonoDebugServer");
         }
 
         public void StartAnnouncing()
         {
-            _isRunning = true;
-            _announceTask = Task.Factory.StartNew(() =>
+            Task.Factory.StartNew(() =>
             {
                 try
                 {
+                    var token = cts.Token;
                     logger.Trace("Start announcing");
-                    UdpClient client = new UdpClient();
-                    IPEndPoint ip = new IPEndPoint(IPAddress.Broadcast, 15000);
-                    client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
-
-                    while (_isRunning)
+                    using (var client = new UdpClient())
                     {
-                        byte[] bytes = Encoding.ASCII.GetBytes("MonoServer");
-                        client.Send(bytes, bytes.Length, ip);
-                        Thread.Sleep(100);
-                    }
+                        var ip = new IPEndPoint(IPAddress.Broadcast, 15000);
+                        client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
 
-                    logger.Trace("Stopping announcing");
-                    client.Close();
+                        while (true)
+                        {
+                            token.ThrowIfCancellationRequested();
+                            byte[] bytes = Encoding.ASCII.GetBytes("MonoServer");
+                            client.Send(bytes, bytes.Length, ip);
+                            Thread.Sleep(100);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    
                 }
                 catch (Exception ex)
                 {
                     logger.Trace(ex);
                 }
             });
+        }
+
+        public void Dispose()
+        {
+            Stop();
+        }
+
+        public void WaitForExit()
+        {
+            listeningTask.Wait();
         }
     }
 }

@@ -54,20 +54,20 @@ namespace MonoDebugger.VS2013
             if (mcs != null)
             {
                 var debugLocally = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int) PkgCmdIDList.cmdLocalDebugCode);
+                    (int)PkgCmdIDList.cmdLocalDebugCode);
                 var localCmd = new OleMenuCommand(DebugLocalClicked, debugLocally);
                 localCmd.BeforeQueryStatus += cmd_BeforeQueryStatus;
                 mcs.AddCommand(localCmd);
 
 
                 var menuCommandID = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int) PkgCmdIDList.cmdRemodeDebugCode);
+                    (int)PkgCmdIDList.cmdRemodeDebugCode);
                 var cmd = new OleMenuCommand(DebugRemoteClicked, menuCommandID);
                 cmd.BeforeQueryStatus += cmd_BeforeQueryStatus;
                 mcs.AddCommand(cmd);
 
                 var cmdOpenLogFileId = new CommandID(GuidList.guidMonoDebugger_VS2013CmdSet,
-                    (int) PkgCmdIDList.cmdOpenLogFile);
+                    (int)PkgCmdIDList.cmdOpenLogFile);
                 var openCmd = new OleMenuCommand(OpenLogFile, cmdOpenLogFileId);
                 openCmd.BeforeQueryStatus += (o, e) => openCmd.Enabled = File.Exists(MonoLogger.LoggerPath);
                 mcs.AddCommand(openCmd);
@@ -154,19 +154,18 @@ namespace MonoDebugger.VS2013
                     server = null;
                 }
 
-                server = new MonoDebugServer();
                 monoExtension.BuildSolution();
-                if (!server.IsRunning)
-                {
-                    var serverTask = server.StartAsync();
-                }
 
-                await monoExtension.AttachDebugger(MonoProcess.GetLocalIp().ToString());
+                using (server = new MonoDebugServer())
+                {
+                    server.Start();
+                    await monoExtension.AttachDebugger(MonoProcess.GetLocalIp().ToString());
+                }
             }
             catch (Exception ex)
             {
                 logger.Error(ex);
-                if (server != null) 
+                if (server != null)
                     server.Stop();
                 MessageBox.Show(ex.Message, "MonoDebugger", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -188,7 +187,7 @@ namespace MonoDebugger.VS2013
                     monoExtension.BuildSolution();
                     if (dlg.ViewModel.SelectedServer != null)
                         await monoExtension.AttachDebugger(dlg.ViewModel.SelectedServer.IpAddress.ToString());
-                    else if(!string.IsNullOrWhiteSpace(dlg.ViewModel.ManualIp))
+                    else if (!string.IsNullOrWhiteSpace(dlg.ViewModel.ManualIp))
                         await monoExtension.AttachDebugger(dlg.ViewModel.ManualIp);
                 }
                 catch (Exception ex)

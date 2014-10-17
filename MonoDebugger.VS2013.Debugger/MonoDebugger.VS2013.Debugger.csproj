@@ -58,19 +58,12 @@
     <Reference Include="Microsoft.CodeAnalysis.CSharp">
       <HintPath>..\packages\Microsoft.CodeAnalysis.CSharp.0.6.4033103-beta\lib\net45\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.CodeAnalysis.CSharp.Workspaces">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.CSharp.Workspaces.0.6.4033103-beta\lib\net45\Microsoft.CodeAnalysis.CSharp.Workspaces.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CodeAnalysis.VisualBasic">
       <HintPath>..\packages\Microsoft.CodeAnalysis.VisualBasic.0.6.4033103-beta\lib\net45\Microsoft.CodeAnalysis.VisualBasic.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.VisualBasic.Workspaces.0.6.4033103-beta\lib\net45\Microsoft.CodeAnalysis.VisualBasic.Workspaces.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CodeAnalysis.Workspaces">
       <HintPath>..\packages\Microsoft.CodeAnalysis.Workspaces.Common.0.6.4033103-beta\lib\net45\Microsoft.CodeAnalysis.Workspaces.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.VisualStudio.Debugger.Interop.11.0, Version=11.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.VisualStudio.Debugger.InteropA, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
     <Reference Include="Microsoft.VisualStudio.Shell.12.0, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Mono.Debugger.Soft">
@@ -84,14 +77,6 @@
       <HintPath>..\packages\Microsoft.Bcl.Immutable.1.1.20-beta\lib\portable-net45+win8\System.Collections.Immutable.dll</HintPath>
     </Reference>
     <Reference Include="System.Core" />
-    <Reference Include="System.Reflection.Metadata">
-      <HintPath>..\packages\Microsoft.Bcl.Metadata.1.0.9-alpha\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AssemblyInfo.cs">
@@ -139,6 +124,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MonoDebugger.Contracts\MonoDebugger.Contracts.csproj">
+      <Project>{B75C9018-8AB4-42CE-A1E8-00B74C3E91D3}</Project>
+      <Name>MonoDebugger.Contracts</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

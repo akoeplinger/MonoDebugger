@@ -11,10 +11,12 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public ThreadMirror ThreadMirror { get; private set; }
 
         private string _threadName = "Mono Thread";
+        private readonly DebuggedMonoProcess debuggedMonoProcess;
         private MonoEngine _engine;
 
-        public MonoThread(MonoEngine engine, ThreadMirror threadMirror)
+        public MonoThread(DebuggedMonoProcess debuggedMonoProcess, MonoEngine engine, ThreadMirror threadMirror)
         {
+            this.debuggedMonoProcess = debuggedMonoProcess;
             _engine = engine;
             ThreadMirror = threadMirror;
         }
@@ -27,7 +29,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         public int EnumFrameInfo(enum_FRAMEINFO_FLAGS dwFieldSpec, uint nRadix, out IEnumDebugFrameInfo2 ppEnum)
         {
             var stackFrames = ThreadMirror.GetFrames();
-            ppEnum = new MonoFrameInfoEnum(stackFrames.Select(x => new MonoStackFrame(this, x).GetFrameInfo(dwFieldSpec)));
+            ppEnum = new MonoFrameInfoEnum(stackFrames.Select(x => new MonoStackFrame(this, debuggedMonoProcess, x).GetFrameInfo(dwFieldSpec)));
             return VSConstants.S_OK;
         }
 
