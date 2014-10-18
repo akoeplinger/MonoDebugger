@@ -51,8 +51,8 @@ namespace MonoDebugger.SharedLib.Server
                 tcp.Server.Close(0);
                 tcp = null;
             }
-
-            Task.WaitAll(listeningTask);
+            if (listeningTask != null)
+                Task.WaitAll(listeningTask);
             logger.Info("Closed MonoDebugServer");
         }
 
