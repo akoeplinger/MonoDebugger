@@ -119,7 +119,7 @@ namespace MonoDebugger.VS2013
                     MonoDebuggerInstaller.RegisterDebugEngine(location, config);
                 }
             }
-            catch (UnauthorizedAccessException unauthorized)
+            catch (UnauthorizedAccessException)
             {
                 MessageBox.Show(
                     "Failed finish installation of MonoDebugger - Please run Visual Studio once als Administrator...",

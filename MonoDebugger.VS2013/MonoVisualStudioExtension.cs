@@ -10,6 +10,7 @@ using MonoDebugger.SharedLib;
 using MonoDebugger.VS2013.Debugger;
 using MonoDebugger.VS2013.Debugger.VisualStudio;
 using MonoDebugger.VS2013.MonoClient;
+using NLog;
 using IServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 using Task = System.Threading.Tasks.Task;
 
@@ -18,6 +19,7 @@ namespace MonoDebugger.VS2013
     internal class MonoVisualStudioExtension
     {
         private readonly DTE _dte;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public MonoVisualStudioExtension(DTE dTE)
         {
@@ -84,11 +86,17 @@ namespace MonoDebugger.VS2013
 
                 DebuggedMonoProcess.Instance.AssociateDebugSession(session);
             }
-            catch
+            catch(Exception ex)
             {
+                logger.Error(ex);
                 string msg;
                 var sh = (IVsUIShell) sp.GetService(typeof (SVsUIShell));
                 sh.GetErrorInfo(out msg);
+
+                if (!string.IsNullOrWhiteSpace(msg))
+                {
+                    logger.Error(msg);
+                }
                 throw;
             }
             finally
