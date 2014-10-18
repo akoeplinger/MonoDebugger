@@ -7,12 +7,15 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using EnvDTE;
 using EnvDTE80;
+using Microsoft.VisualStudio.Settings;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.Shell.Settings;
 using Microsoft.Win32;
 using MonoDebugger.SharedLib;
 using MonoDebugger.SharedLib.Server;
 using MonoDebugger.VS2013.Debugger;
+using MonoDebugger.VS2013.Settings;
 using MonoDebugger.VS2013.Views;
 using NLog;
 using Process = System.Diagnostics.Process;
@@ -32,6 +35,9 @@ namespace MonoDebugger.VS2013
 
         protected override void Initialize()
         {
+            var settingsManager = new ShellSettingsManager(this);
+            var configurationSettingsStore = settingsManager.GetWritableSettingsStore(SettingsScope.UserSettings);
+            UserSettingsManager.Initialize(configurationSettingsStore);
             MonoLogger.Setup();
             base.Initialize();
             var dte = (DTE) GetService(typeof (DTE));

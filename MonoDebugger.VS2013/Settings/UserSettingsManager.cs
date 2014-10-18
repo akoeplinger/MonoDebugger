@@ -1,5 +1,5 @@
 ﻿using System;
-using System.IO;
+using Microsoft.VisualStudio.Settings;
 using Newtonsoft.Json;
 using NLog;
 
@@ -7,17 +7,28 @@ namespace MonoDebugger.VS2013.Settings
 {
     public class UserSettingsManager
     {
-        private static readonly string settingsPath = Path.Combine(Directory.GetCurrentDirectory(), "Settings.json");
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly UserSettingsManager manager = new UserSettingsManager();
+        private WritableSettingsStore store;
+
+        private UserSettingsManager()
+        {
+        }
+
+        public static UserSettingsManager Instance
+        {
+            get { return manager; }
+        }
 
         public UserSettings Load()
         {
             var result = new UserSettings();
-            if (File.Exists(settingsPath))
+
+            if (store.CollectionExists("MonoDebugger"))
             {
                 try
                 {
-                    string content = File.ReadAllText(settingsPath);
+                    string content = store.GetString("MonoDebugger", "Settings");
                     result = JsonConvert.DeserializeObject<UserSettings>(content);
                     return result;
                 }
@@ -33,7 +44,14 @@ namespace MonoDebugger.VS2013.Settings
         public void Save(UserSettings settings)
         {
             string json = JsonConvert.SerializeObject(settings);
-            File.WriteAllText(settingsPath, json);
+            if (!store.CollectionExists("MonoDebugger"))
+                store.CreateCollection("MonoDebugger");
+            store.SetString("MonoDebugger", "Settings", json);
+        }
+
+        public static void Initialize(WritableSettingsStore configurationSettingsStore)
+        {
+            Instance.store = configurationSettingsStore;
         }
     }
 }

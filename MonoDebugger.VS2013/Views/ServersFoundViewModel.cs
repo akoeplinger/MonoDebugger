@@ -10,12 +10,11 @@ namespace MonoDebugger.VS2013.Views
     public class ServersFoundViewModel
     {
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
-        private readonly UserSettingsManager userSettingsManager = new UserSettingsManager();
 
         public ServersFoundViewModel()
         {
             Servers = new ObservableCollection<MonoServerInformation>();
-            UserSettings settings = userSettingsManager.Load();
+            UserSettings settings = UserSettingsManager.Instance.Load();
             ManualIp = settings.LastIp;
             LookupServers(cts.Token);
         }
@@ -55,9 +54,9 @@ namespace MonoDebugger.VS2013.Views
 
         public void StopLooking()
         {
-            UserSettings settings = userSettingsManager.Load();
+            UserSettings settings = UserSettingsManager.Instance.Load();
             settings.LastIp = ManualIp;
-            userSettingsManager.Save(settings);
+            UserSettingsManager.Instance.Save(settings);
 
             cts.Cancel();
         }
