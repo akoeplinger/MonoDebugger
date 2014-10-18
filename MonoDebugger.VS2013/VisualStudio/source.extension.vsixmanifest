@@ -7,7 +7,7 @@
     <DisplayName>MonoDebugger</DisplayName>
     <Description xml:space="preserve">MonoDebugger by Giesswein-Apps</Description>
     <MoreInfo>http://www.giesswein-apps.at/mono</MoreInfo>
-    <License>License.txt</License>
+    <License>VisualStudio\License.txt</License>
     <Icon>Resources\Package.ico</Icon>
     <PreviewImage>Resources\Package.ico</PreviewImage>
   </Metadata>
