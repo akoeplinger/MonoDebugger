@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Xml;
 using NLog;
 
 namespace MonoDebugger.SharedLib.Server
@@ -20,7 +21,7 @@ namespace MonoDebugger.SharedLib.Server
         public ClientSession(Socket socket)
         {
             directoryName = Path.Combine(root, Path.GetRandomFileName());
-            remoteEndpoint = ((IPEndPoint) socket.RemoteEndPoint).Address;
+            remoteEndpoint = ((IPEndPoint)socket.RemoteEndPoint).Address;
             communication = new TcpCommunication(socket);
 
             if (!Directory.Exists("MonoDebugger"))
@@ -48,15 +49,25 @@ namespace MonoDebugger.SharedLib.Server
                     switch (msg.Command)
                     {
                         case Command.DebugContent:
-                            StartDebugging((StartDebuggingMessage) msg.Payload);
+                            StartDebugging((StartDebuggingMessage)msg.Payload);
                             communication.Send(Command.StartedMono, new StatusMessage());
                             break;
+                        case Command.Shutdown:
+                            logger.Info("Shutdown-Message received");
+                            return;
                     }
                 }
+            }
+            catch (XmlException)
+            {
+                logger.Info("CommunicationError");
             }
             catch (Exception ex)
             {
                 logger.Error(ex);
+            }
+            finally
+            {
                 if (proc != null && !proc.HasExited)
                     proc.Kill();
             }
