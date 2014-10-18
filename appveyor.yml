@@ -1,0 +1,14 @@
+configuration: Release
+
+before_build:
+  - nuget restore
+
+build:
+  project: MonoDebugger.sln
+  verbosity: minimal
+
+artifacts:
+  - path: Output\Release\Extension\MonoDebugger.VS2013.vsix
+
+  - path: Output\Release\Server
+    type: zip
