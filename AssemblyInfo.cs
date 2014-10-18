@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("MonoDebugger")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Giesswein-Apps e.U.")]
 [assembly: AssemblyProduct("MonoDebugger")]
-[assembly: AssemblyCopyright("Copyright Giesswein-Apps e.U. 2014")]
+[assembly: AssemblyCopyright("Copyright Christian Giesswein 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
