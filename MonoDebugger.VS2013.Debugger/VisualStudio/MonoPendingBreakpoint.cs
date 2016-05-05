@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis;
@@ -145,7 +146,7 @@ namespace MonoDebugger.VS2013.Debugger.VisualStudio
         {
             try
             {
-                SyntaxTree syntaxTree = CSharpSyntaxTree.ParseFile(DocumentName);
+                SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(DocumentName));
                 TextLine textLine = syntaxTree.GetText().Lines[StartLine];
                 Location location = syntaxTree.GetLocation(textLine.Span);
                 SyntaxTree sourceTree = location.SourceTree;
