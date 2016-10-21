@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -23,7 +24,7 @@ namespace MonoDebugger.VS2013.Debugger
                 logger.Trace("Line: {0} Column: {1} Source: {2}", startLine, startColumn, fileName);
 
 
-                SyntaxTree syntaxTree = CSharpSyntaxTree.ParseFile(fileName);
+                SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(fileName));
                 SourceText text = syntaxTree.GetText();
                 var root = (CompilationUnitSyntax) syntaxTree.GetRoot();
 
