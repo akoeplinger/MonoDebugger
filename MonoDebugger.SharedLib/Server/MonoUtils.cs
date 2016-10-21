@@ -45,15 +45,37 @@ namespace MonoDebugger.SharedLib.Server
             {
                 RegistryKey localMachine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Default);
                 RegistryKey monoKey = localMachine.OpenSubKey(@"Software\Novell\Mono\");
-                var monoVersion = monoKey.GetValue("DefaultCLR") as string;
-                RegistryKey versionKey = localMachine.OpenSubKey(string.Format(@"Software\Novell\Mono\{0}", monoVersion));
-                var path = (string) versionKey.GetValue("SdkInstallRoot");
-                return path;
+                RegistryKey pathKey = null;
+
+                //try get novell key, no doubt for backward compatibility
+                if (monoKey != null)
+                {
+                    var monoVersion = monoKey.GetValue("DefaultCLR") as string;
+                     pathKey = localMachine.OpenSubKey(string.Format(@"Software\Novell\Mono\{0}", monoVersion));          
+                }
+
+                //if nothing found then get using new method
+                if(pathKey == null)
+                {
+                    pathKey = localMachine.OpenSubKey(@"Software\Mono\");
+                }
+
+                //return key or nothing if cant find
+                if (pathKey != null)
+                {
+                    return (string)pathKey.GetValue("SdkInstallRoot");
+                }
+                else
+                {
+                    return string.Empty;
+                }
+
             }
             catch
             {
+                return string.Empty;
             }
-            return string.Empty;
+            
         }
     }
 }
